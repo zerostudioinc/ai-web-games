@@ -1,5 +1,4 @@
-export const POINTS_PER_BOMB = 10;
-export const waveBonus = (wave: number): number => 50 * wave;
+export const POINTS_PER_BOMB = 1;
 
 export const HIGH_SCORE_KEY = 'water-balloon-bombardment:high-score';
 

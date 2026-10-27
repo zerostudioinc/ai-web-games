@@ -1,7 +1,7 @@
 export const TOTAL_WAVES = 10;
 export const INTERMISSION_MS = 2500;
 
-export const bombsInWave = (wave: number): number => 20 + 10 * (wave - 1);
+export const bombsInWave = (wave: number): number => 20 + 5 * (wave - 1);
 export const bombSpeed = (wave: number): number => 40 + 12 * (wave - 1); // px per second
 export const spawnIntervalMs = (wave: number): number => 1400 - 100 * (wave - 1);
 

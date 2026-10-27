@@ -9,10 +9,11 @@ import {
 } from './waves';
 
 describe('wave tables', () => {
-  it('starts at 20 bombs and grows by 10 per wave', () => {
+  it('starts at 20 bombs and grows by 5 per wave', () => {
     expect(bombsInWave(1)).toBe(20);
-    expect(bombsInWave(2)).toBe(30);
-    expect(bombsInWave(TOTAL_WAVES)).toBe(110);
+    expect(bombsInWave(2)).toBe(25);
+    expect(bombsInWave(3)).toBe(30);
+    expect(bombsInWave(TOTAL_WAVES)).toBe(65);
   });
 
   it('walks faster every wave', () => {
@@ -59,7 +60,7 @@ describe('WaveDirector', () => {
     expect(director.phase).toBe('intermission');
   });
 
-  it('plays all waves and ends in victory with 650 bombs', () => {
+  it('plays all waves and ends in victory with 425 bombs', () => {
     const director = new WaveDirector(4, () => 0.5);
     let spawned = 0;
     const cleared: number[] = [];
@@ -71,7 +72,7 @@ describe('WaveDirector', () => {
     }
 
     expect(director.phase).toBe('victory');
-    expect(spawned).toBe(650);
+    expect(spawned).toBe(425);
     expect(cleared).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 });

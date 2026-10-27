@@ -28,7 +28,7 @@ import { Splash } from '../entities/Splash';
 import { flightTimeMs, indicesInRadius, targetPlayerForLane } from '../systems/combat';
 import { clampToBounds, stepReticle } from '../systems/movement';
 import { PlayerInputSystem } from '../systems/PlayerInputSystem';
-import { POINTS_PER_BOMB, loadHighScore, recordScore, waveBonus } from '../systems/score';
+import { POINTS_PER_BOMB, loadHighScore, recordScore } from '../systems/score';
 import { TOTAL_WAVES, WaveDirector, bombSpeed } from '../systems/waves';
 
 const END_DELAY_MS = 1500;
@@ -207,7 +207,6 @@ export class PlayScene extends Phaser.Scene {
     for (const lane of update.spawnLanes) {
       this.bombs.push(new Bomb(this, lane, bombSpeed(this.director.wave)));
     }
-    if (update.waveCleared !== null) this.score += waveBonus(update.waveCleared);
     if (this.director.phase === 'victory') this.finish('won');
   }
 

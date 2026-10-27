@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HIGH_SCORE_KEY, loadHighScore, recordScore, waveBonus, type ScoreStorage } from './score';
+import { HIGH_SCORE_KEY, POINTS_PER_BOMB, loadHighScore, recordScore, type ScoreStorage } from './score';
 
 const memoryStorage = (initial: Record<string, string> = {}): ScoreStorage & { data: Record<string, string> } => {
   const data = { ...initial };
@@ -41,8 +41,8 @@ describe('high score', () => {
   });
 });
 
-describe('waveBonus', () => {
-  it('grows with the wave number', () => {
-    expect(waveBonus(2)).toBeGreaterThan(waveBonus(1));
+describe('scoring', () => {
+  it('awards 1 point per bomb', () => {
+    expect(POINTS_PER_BOMB).toBe(1);
   });
 });
