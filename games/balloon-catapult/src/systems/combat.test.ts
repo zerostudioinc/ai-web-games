@@ -43,8 +43,9 @@ describe('targetPlayerForLane', () => {
     expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 1))).toEqual([0, 0, 0, 0]);
   });
 
-  it('maps lanes to the nearest catapult with fewer than 4 players', () => {
-    expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 2))).toEqual([0, 1, 1, 1]);
+  it('maps each lane to the nearest centred catapult', () => {
+    expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 2))).toEqual([0, 0, 1, 1]);
+    expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 3))).toEqual([0, 0, 1, 2]);
     expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 4))).toEqual([0, 1, 2, 3]);
   });
 });

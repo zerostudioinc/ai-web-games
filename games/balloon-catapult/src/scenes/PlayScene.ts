@@ -6,7 +6,6 @@ import {
   FIELD_BOUNDS,
   FIELD_TOP,
   GAME_WIDTH,
-  LANE_COUNT,
   MAX_FLIGHT_MS,
   MAX_FRAME_MS,
   MAX_PLAYERS,
@@ -29,9 +28,9 @@ import { flightTimeMs, indicesInRadius, targetPlayerForLane } from '../systems/c
 import { clampToBounds, stepReticle } from '../systems/movement';
 import { PlayerInputSystem } from '../systems/PlayerInputSystem';
 import { MenuPadInput } from '../systems/MenuPadInput';
-import { POINTS_PER_BOMB, loadHighScore, recordScore } from '../systems/score';
+import { POINTS_PER_BOMB, bestScore, recordScore } from '../systems/score';
 import { TOTAL_WAVES, WaveDirector } from '../systems/waves';
-import { bombSpeed, isDifficulty, type Difficulty } from '../systems/difficulty';
+import { DIFFICULTY_SETTINGS, bombSpeed, isDifficulty, type Difficulty } from '../systems/difficulty';
 
 const END_DELAY_MS = 1500;
 const EXPLOSION_COLOR = 0xff7043;
@@ -100,8 +99,8 @@ export class PlayScene extends Phaser.Scene {
     keyboard?.on('keydown-UP', () => this.paused && this.pauseOverlay.move(-1));
     keyboard?.on('keydown-DOWN', () => this.paused && this.pauseOverlay.move(1));
     keyboard?.on('keydown-ENTER', () => this.paused && this.pauseOverlay.activateSelected());
-    this.director = new WaveDirector(LANE_COUNT);
-    this.startingHighScore = loadHighScore();
+    this.director = new WaveDirector(DIFFICULTY_SETTINGS[this.difficulty].lanes);
+    this.startingHighScore = bestScore(this.difficulty);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.controls.destroy());
   }
@@ -233,12 +232,12 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private showResult(outcome: Outcome): void {
-    const highScore = recordScore(this.score);
+    const { top, rank } = recordScore(this.difficulty, this.score);
     this.scene.start(SceneKey.Result, {
       won: outcome === 'won',
       score: this.score,
-      highScore,
-      newHighScore: this.score > this.startingHighScore,
+      highScore: top[0] ?? 0,
+      rank,
       wave: Math.max(1, this.director.wave),
       players: this.playerCount,
       difficulty: this.difficulty,
@@ -246,7 +245,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private quitToMenu(): void {
-    recordScore(this.score);
+    recordScore(this.difficulty, this.score);
     this.scene.start(SceneKey.Menu);
   }
 

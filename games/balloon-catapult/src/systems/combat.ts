@@ -1,3 +1,4 @@
+import { LANE_COUNT, catapultY, laneCenterY } from '../config';
 import { clamp, type Vec2 } from './movement';
 
 export const flightTimeMs = (distance: number, speed: number, minMs: number, maxMs: number): number =>
@@ -20,6 +21,12 @@ export function indicesInRadius(points: Vec2[], center: Vec2, radius: number): n
   return hits;
 }
 
-// With fewer than 4 players the unguarded lanes fall to the nearest catapult.
-export const targetPlayerForLane = (lane: number, playerCount: number): number =>
-  playerCount === 1 ? 0 : Math.min(lane, playerCount - 1);
+// A bomb attacks the catapult nearest its lane; on a tie the upper catapult is hit.
+export function targetPlayerForLane(lane: number, playerCount: number): number {
+  const laneY = laneCenterY(Math.min(Math.max(lane, 0), LANE_COUNT - 1));
+  let best = 0;
+  for (let player = 1; player < playerCount; player++) {
+    if (Math.abs(catapultY(player, playerCount) - laneY) < Math.abs(catapultY(best, playerCount) - laneY)) best = player;
+  }
+  return best;
+}

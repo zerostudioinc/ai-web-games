@@ -7,6 +7,8 @@ import {
   spawnIntervalMs,
 } from './waves';
 
+const ALL_LANES = [0, 1, 2, 3];
+
 describe('wave tables', () => {
   it('has 5 waves', () => {
     expect(TOTAL_WAVES).toBe(5);
@@ -26,14 +28,14 @@ describe('wave tables', () => {
 
 describe('WaveDirector', () => {
   it('starts wave 1 after the intermission', () => {
-    const director = new WaveDirector(4, () => 0);
+    const director = new WaveDirector(ALL_LANES, () => 0);
     expect(director.update(INTERMISSION_MS - 1, 0).waveStarted).toBeNull();
     expect(director.update(1, 0).waveStarted).toBe(1);
     expect(director.phase).toBe('spawning');
   });
 
   it('spawns every bomb of the wave in valid lanes', () => {
-    const director = new WaveDirector(4, () => 0.99);
+    const director = new WaveDirector(ALL_LANES, () => 0.99);
     director.update(INTERMISSION_MS, 0);
 
     const lanes: number[] = [];
@@ -45,8 +47,25 @@ describe('WaveDirector', () => {
     expect(lanes.every((lane) => lane === 3)).toBe(true);
   });
 
+  it('only spawns in the lanes it is given', () => {
+    let roll = 0;
+    const director = new WaveDirector([2, 3], () => {
+      roll = (roll + 0.37) % 1;
+      return roll;
+    });
+    director.update(INTERMISSION_MS, 0);
+
+    const lanes: number[] = [];
+    for (let i = 0; i < 1000 && director.phase === 'spawning'; i++) {
+      lanes.push(...director.update(spawnIntervalMs(1), 0).spawnLanes);
+    }
+
+    expect(lanes).toHaveLength(bombsInWave(1));
+    expect(new Set(lanes)).toEqual(new Set([2, 3]));
+  });
+
   it('waits for live bombs before clearing, and not in the update that finishes spawning', () => {
-    const director = new WaveDirector(4, () => 0);
+    const director = new WaveDirector(ALL_LANES, () => 0);
     director.update(INTERMISSION_MS, 0);
     while (director.phase === 'spawning') {
       expect(director.update(spawnIntervalMs(1), 0).waveCleared).toBeNull();
@@ -58,7 +77,7 @@ describe('WaveDirector', () => {
   });
 
   it('counts bombs remaining in the wave down to 0', () => {
-    const director = new WaveDirector(4, () => 0);
+    const director = new WaveDirector(ALL_LANES, () => 0);
     expect(director.bombsRemaining(0)).toBe(20); // next wave, during the intermission
 
     director.update(INTERMISSION_MS, 0);
@@ -73,7 +92,7 @@ describe('WaveDirector', () => {
   });
 
   it('plays all waves and ends in victory with 150 bombs', () => {
-    const director = new WaveDirector(4, () => 0.5);
+    const director = new WaveDirector(ALL_LANES, () => 0.5);
     let spawned = 0;
     const cleared: number[] = [];
 
@@ -88,3 +107,4 @@ describe('WaveDirector', () => {
     expect(cleared).toEqual([1, 2, 3, 4, 5]);
   });
 });
+

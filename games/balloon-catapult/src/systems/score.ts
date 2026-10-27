@@ -1,6 +1,9 @@
-export const POINTS_PER_BOMB = 1;
+import type { Difficulty } from './difficulty';
 
-export const HIGH_SCORE_KEY = 'balloon-catapult:high-score';
+export const POINTS_PER_BOMB = 1;
+export const TOP_SCORE_COUNT = 3;
+
+export const topScoresKey = (difficulty: Difficulty): string => `balloon-catapult:top-scores:${difficulty}`;
 
 export interface ScoreStorage {
   getItem(key: string): string | null;
@@ -16,23 +19,41 @@ function browserStorage(): ScoreStorage | undefined {
   }
 }
 
-export function loadHighScore(storage: ScoreStorage | undefined = browserStorage()): number {
+/** Highest first, at most TOP_SCORE_COUNT entries. */
+export function loadTopScores(difficulty: Difficulty, storage: ScoreStorage | undefined = browserStorage()): number[] {
   try {
-    const value = Number.parseInt(storage?.getItem(HIGH_SCORE_KEY) ?? '', 10);
-    return Number.isFinite(value) && value > 0 ? value : 0;
+    const parsed: unknown = JSON.parse(storage?.getItem(topScoresKey(difficulty)) ?? '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0)
+      .sort((a, b) => b - a)
+      .slice(0, TOP_SCORE_COUNT);
   } catch {
-    return 0;
+    return [];
   }
 }
 
-/** Saves `score` if it beats the stored best and returns the resulting high score. */
-export function recordScore(score: number, storage: ScoreStorage | undefined = browserStorage()): number {
-  const best = loadHighScore(storage);
-  if (score <= best) return best;
+export const bestScore = (difficulty: Difficulty, storage?: ScoreStorage): number => loadTopScores(difficulty, storage)[0] ?? 0;
+
+export interface RecordedScore {
+  top: number[];
+  rank: number | null; // 0-based position in the top list, or null if it did not make it
+}
+
+/** Adds `score` to the difficulty's top list if it qualifies. A tie ranks below existing equal scores. */
+export function recordScore(difficulty: Difficulty, score: number, storage: ScoreStorage | undefined = browserStorage()): RecordedScore {
+  const top = loadTopScores(difficulty, storage);
+  if (score <= 0) return { top, rank: null };
+
+  let rank = top.findIndex((existing) => score > existing);
+  if (rank === -1) rank = top.length;
+  if (rank >= TOP_SCORE_COUNT) return { top, rank: null };
+
+  const updated = [...top.slice(0, rank), score, ...top.slice(rank)].slice(0, TOP_SCORE_COUNT);
   try {
-    storage?.setItem(HIGH_SCORE_KEY, String(score));
+    storage?.setItem(topScoresKey(difficulty), JSON.stringify(updated));
   } catch {
-    // Persisting is best-effort; the in-memory score still counts for this session.
+    // Persisting is best-effort; the in-memory result still counts for this session.
   }
-  return score;
+  return { top: updated, rank };
 }

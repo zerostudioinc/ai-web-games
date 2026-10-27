@@ -1,3 +1,4 @@
+import type { Difficulty } from './systems/difficulty';
 import type { Bounds } from './systems/movement';
 
 export const GAME_WIDTH = 1280;
@@ -32,6 +33,7 @@ export const SceneKey = {
   Boot: 'BootScene',
   Menu: 'MenuScene',
   Difficulty: 'DifficultyScene',
+  HighScores: 'HighScoresScene',
   Play: 'PlayScene',
   Result: 'ResultScene',
 } as const;
@@ -47,6 +49,11 @@ export const TextureKey = {
 
 export const laneCenterY = (lane: number): number => FIELD_TOP + (lane + 0.5) * LANE_HEIGHT;
 
-// A lone catapult is centred in the field; otherwise player N sits in lane N.
+// Catapults are spaced one lane apart and centred as a group on the field, whatever the player count.
 export const catapultY = (playerIndex: number, playerCount: number): number =>
-  playerCount === 1 ? FIELD_TOP + (GAME_HEIGHT - FIELD_TOP) / 2 : laneCenterY(playerIndex);
+  FIELD_TOP + (GAME_HEIGHT - FIELD_TOP) / 2 + (playerIndex - (playerCount - 1) / 2) * LANE_HEIGHT;
+
+// High scores and Home (and Back) share one size and sit in the top corners of menu screens.
+export const CORNER_BUTTON = { width: 150, height: 42, fontSize: 22, margin: 20 } as const;
+
+export const DIFFICULTY_COLORS: Record<Difficulty, number> = { veryEasy: 0x81d4fa, easy: 0x81c784, normal: 0xffd54f, hard: 0xef5350 };

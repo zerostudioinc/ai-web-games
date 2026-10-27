@@ -12,7 +12,7 @@ Requirements:
   - Very Easy
     - Starting Bomb Speed: 24px/s
     - Speed Increment per Wave: 6px/s
-    - Bomb only shows up in two lanes, lane 3 and lane 4.
+    - Bomb only shows up in two lanes, lane 2 and lane 3.
   - Easy
     - Starting Bomb Speed: 36px/s
     - Speed Increment per Wave: 12px/s

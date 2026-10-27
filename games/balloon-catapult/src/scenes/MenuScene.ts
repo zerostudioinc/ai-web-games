@@ -2,9 +2,8 @@ import Phaser from 'phaser';
 import { Bomb } from '../entities/Bomb';
 import { Button } from '../entities/Button';
 import { TitleBanner } from '../entities/TitleBanner';
-import { GAME_WIDTH, MAX_PLAYERS, PLAYER_COLORS, SceneKey, TextureKey } from '../config';
-import { COLOR, hex, labelStyle, plainStyle } from '../style';
-import { loadHighScore } from '../systems/score';
+import { CORNER_BUTTON, GAME_WIDTH, MAX_PLAYERS, PLAYER_COLORS, SceneKey, TextureKey } from '../config';
+import { labelStyle } from '../style';
 import { MenuPadInput } from '../systems/MenuPadInput';
 
 const INPUT_DELAY_MS = 700; // so a button held from the previous screen doesn't start a game
@@ -48,11 +47,21 @@ export class MenuScene extends Phaser.Scene {
       { text: 'CATAPULT', y: 245, size: 128, top: '#fff59d', bottom: '#ff7043' },
     ]);
 
-    new Button(this, GAME_WIDTH - 76, 39, {
-      width: 112,
-      height: 42,
+    const { width, height, fontSize, margin } = CORNER_BUTTON;
+    const cornerY = margin + height / 2 - 2;
+    new Button(this, margin + width / 2, cornerY, {
+      width,
+      height,
+      label: 'High Scores',
+      fontSize,
+      color: 0xffd54f,
+      onClick: () => this.scene.start(SceneKey.HighScores),
+    });
+    new Button(this, GAME_WIDTH - margin - width / 2, cornerY, {
+      width,
+      height,
       label: 'Home',
-      fontSize: 22,
+      fontSize,
       color: 0x90caf9,
       onClick: () => window.location.assign(HOME_URL),
     });
@@ -75,8 +84,7 @@ export class MenuScene extends Phaser.Scene {
       this.input.keyboard?.on(`keydown-${KEY_NAMES[n - 1]}`, () => this.startGame(n));
     }
 
-    this.drawBestScoreSign(cx, 548);
-    this.add.text(cx, 600, 'Tap a number or press 1-4  |  Controller: any button starts one player per controller', labelStyle(20)).setOrigin(0.5);
+    this.add.text(cx, 570, 'Tap a number or press 1-4  |  Controller: any button starts one player per controller', labelStyle(20)).setOrigin(0.5);
 
     for (let i = 0; i < 3; i++) {
       const walker = new Bomb(this, 0, 40 + i * 10);
@@ -101,14 +109,6 @@ export class MenuScene extends Phaser.Scene {
 
     const { confirm, connectedCount } = this.pad.poll();
     if (confirm && this.time.now - this.openedAt >= INPUT_DELAY_MS) this.startGame(Math.max(1, connectedCount));
-  }
-
-  private drawBestScoreSign(x: number, y: number): void {
-    const panel = this.add.graphics();
-    panel.fillStyle(COLOR.ink, 0.35).fillRoundedRect(x - 150, y - 20, 300, 52, 14);
-    panel.fillStyle(COLOR.cream).fillRoundedRect(x - 150, y - 26, 300, 52, 14);
-    panel.lineStyle(3, COLOR.ink).strokeRoundedRect(x - 150, y - 26, 300, 52, 14);
-    this.add.text(x, y, `BEST SCORE: ${loadHighScore()}`, plainStyle(28, hex(COLOR.ink))).setOrigin(0.5);
   }
 
   private startGame(players: number): void {
