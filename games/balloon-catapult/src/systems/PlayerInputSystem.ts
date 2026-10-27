@@ -2,16 +2,15 @@ import Phaser from 'phaser';
 import { FIELD_BOUNDS, MAX_PLAYERS } from '../config';
 import { clamp, type Vec2 } from './movement';
 import { padIndexForPlayer, playerForPadIndex } from './players';
+import { anyNewPress, fireButtonStates } from './padFire';
 
 const STICK_DEADZONE = 0.25;
 const START_BUTTON = 9;
-// Start pauses and the D-pad moves the reticle, so neither fires.
-const NON_FIRE_BUTTONS = new Set([START_BUTTON, 12, 13, 14, 15]);
 
 type WasdKeys = Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
 
 export function isFireButtonDown(pad: Phaser.Input.Gamepad.Gamepad): boolean {
-  return pad.buttons.some((button, index) => button.pressed && !NON_FIRE_BUTTONS.has(index));
+  return fireButtonStates(pad.buttons).some(Boolean);
 }
 
 /**
@@ -26,7 +25,7 @@ export class PlayerInputSystem {
   private readonly pauseKeys: Phaser.Input.Keyboard.Key[] = [];
 
   private readonly fireEdge: boolean[] = new Array<boolean>(MAX_PLAYERS).fill(false);
-  private readonly padFireDown: boolean[] = new Array<boolean>(MAX_PLAYERS).fill(false); // by pad index
+  private readonly padFireDown: boolean[][] = Array.from({ length: MAX_PLAYERS }, () => fireButtonStates([])); // by pad index, per fire button
   private readonly padStartDown: boolean[] = new Array<boolean>(MAX_PLAYERS).fill(false); // by pad index
   private pauseEdge = false;
   private touchFire = false;
@@ -51,7 +50,7 @@ export class PlayerInputSystem {
     // Buttons already held when the scene starts must not count as a fresh press.
     for (let i = 0; i < MAX_PLAYERS; i++) {
       const pad = scene.input.gamepad?.getPad(i);
-      this.padFireDown[i] = !!pad?.connected && isFireButtonDown(pad);
+      this.padFireDown[i] = fireButtonStates(pad?.connected ? pad.buttons : []);
       this.padStartDown[i] = !!pad?.connected && !!pad.buttons[START_BUTTON]?.pressed;
     }
   }
@@ -74,9 +73,9 @@ export class PlayerInputSystem {
       const pad = this.scene.input.gamepad?.getPad(i);
       const connected = pad?.connected ?? false;
 
-      const fireDown = connected && !!pad && isFireButtonDown(pad);
+      const fireDown = fireButtonStates(connected && pad ? pad.buttons : []);
       const player = playerForPadIndex(i, this.playerCount);
-      if (fireDown && !this.padFireDown[i] && player !== null) this.fireEdge[player] = true;
+      if (anyNewPress(this.padFireDown[i], fireDown) && player !== null) this.fireEdge[player] = true;
       this.padFireDown[i] = fireDown;
 
       // Any controller's Start button pauses.

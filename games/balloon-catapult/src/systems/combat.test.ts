@@ -39,13 +39,30 @@ describe('indicesInRadius', () => {
 });
 
 describe('targetPlayerForLane', () => {
+  const lanes = (count: number) => (count === 1 || count === 3 ? [0, 1, 2] : [0, 1, 2, 3]);
+  const allAlive = (count: number) => Array<boolean>(count).fill(true);
+
   it('sends every lane to the lone catapult', () => {
-    expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 1))).toEqual([0, 0, 0, 0]);
+    expect(lanes(1).map((lane) => targetPlayerForLane(lane, 1, allAlive(1)))).toEqual([0, 0, 0]);
   });
 
-  it('maps each lane to the nearest centred catapult', () => {
-    expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 2))).toEqual([0, 0, 1, 1]);
-    expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 3))).toEqual([0, 0, 1, 2]);
-    expect([0, 1, 2, 3].map((lane) => targetPlayerForLane(lane, 4))).toEqual([0, 1, 2, 3]);
+  it('hits the closest catapult', () => {
+    expect(lanes(2).map((lane) => targetPlayerForLane(lane, 2, allAlive(2)))).toEqual([0, 0, 1, 1]);
+    expect(lanes(3).map((lane) => targetPlayerForLane(lane, 3, allAlive(3)))).toEqual([0, 1, 2]);
+    expect(lanes(4).map((lane) => targetPlayerForLane(lane, 4, allAlive(4)))).toEqual([0, 1, 2, 3]);
+  });
+
+  it('sends every bomb to the last survivor', () => {
+    expect(lanes(4).map((lane) => targetPlayerForLane(lane, 4, [false, false, true, false]))).toEqual([2, 2, 2, 2]);
+    expect(lanes(2).map((lane) => targetPlayerForLane(lane, 2, [true, false]))).toEqual([0, 0, 0, 0]);
+  });
+
+  it('skips wrecked catapults and breaks ties towards the upper one', () => {
+    expect(targetPlayerForLane(1, 3, [false, false, true])).toBe(2);
+    expect(targetPlayerForLane(1, 3, [true, false, true])).toBe(0);
+  });
+
+  it('hits nobody when every catapult is wrecked', () => {
+    expect(targetPlayerForLane(1, 3, [false, false, false])).toBeNull();
   });
 });

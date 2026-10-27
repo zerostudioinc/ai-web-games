@@ -54,7 +54,7 @@ export class DifficultyScene extends Phaser.Scene {
       this.input.keyboard?.on(`keydown-${KEY_NAMES[index]}`, () => this.start(index));
     });
     this.drawRing();
-    this.add.text(this.buttonX(0), BUTTON_Y + BUTTON_HEIGHT / 2 + 34, 'For little players:\nonly 2 lanes, slow bombs', labelStyle(22)).setOrigin(0.5, 0).setAlign('center');
+    this.add.text(this.buttonX(0), BUTTON_Y + BUTTON_HEIGHT / 2 + 34, 'For little players:\nmiddle lanes, slow bombs', labelStyle(22)).setOrigin(0.5, 0).setAlign('center');
 
     const { width, height, fontSize, margin } = CORNER_BUTTON;
     new Button(this, margin + width / 2, margin + height / 2 - 2, { width, height, label: 'Back', fontSize, color: 0x90caf9, onClick: () => this.back() });

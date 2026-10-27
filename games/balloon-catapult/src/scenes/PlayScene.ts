@@ -14,8 +14,10 @@ import {
   RETICLE_SPEED,
   SPLASH_RADIUS,
   SceneKey,
-  TextureKey,
   catapultY,
+  fieldTextureKey,
+  laneCenterY,
+  laneCountFor,
 } from '../config';
 import { Balloon } from '../entities/Balloon';
 import { Bomb } from '../entities/Bomb';
@@ -30,7 +32,7 @@ import { PlayerInputSystem } from '../systems/PlayerInputSystem';
 import { MenuPadInput } from '../systems/MenuPadInput';
 import { POINTS_PER_BOMB, bestScore, recordScore } from '../systems/score';
 import { TOTAL_WAVES, WaveDirector } from '../systems/waves';
-import { DIFFICULTY_SETTINGS, bombSpeed, isDifficulty, type Difficulty } from '../systems/difficulty';
+import { bombLanes, bombSpeed, isDifficulty, type Difficulty } from '../systems/difficulty';
 
 const END_DELAY_MS = 1500;
 const EXPLOSION_COLOR = 0xff7043;
@@ -40,6 +42,7 @@ type Outcome = 'won' | 'lost';
 
 export class PlayScene extends Phaser.Scene {
   private playerCount = 1;
+  private laneCount = laneCountFor(1);
   private difficulty: Difficulty = 'normal';
   private controls!: PlayerInputSystem;
   private pauseNav!: MenuPadInput;
@@ -65,6 +68,7 @@ export class PlayScene extends Phaser.Scene {
 
   init(data: { players?: number; difficulty?: Difficulty }): void {
     this.playerCount = Phaser.Math.Clamp(data.players ?? 1, 1, MAX_PLAYERS);
+    this.laneCount = laneCountFor(this.playerCount);
     this.difficulty = isDifficulty(data.difficulty) ? data.difficulty : 'normal';
     this.catapults = [];
     this.reticles = [];
@@ -78,7 +82,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.add.image(0, FIELD_TOP, TextureKey.Field).setOrigin(0);
+    this.add.image(0, FIELD_TOP, fieldTextureKey(this.laneCount)).setOrigin(0);
 
     for (let i = 0; i < this.playerCount; i++) {
       const y = catapultY(i, this.playerCount);
@@ -99,7 +103,7 @@ export class PlayScene extends Phaser.Scene {
     keyboard?.on('keydown-UP', () => this.paused && this.pauseOverlay.move(-1));
     keyboard?.on('keydown-DOWN', () => this.paused && this.pauseOverlay.move(1));
     keyboard?.on('keydown-ENTER', () => this.paused && this.pauseOverlay.activateSelected());
-    this.director = new WaveDirector(DIFFICULTY_SETTINGS[this.difficulty].lanes);
+    this.director = new WaveDirector(bombLanes(this.difficulty, this.laneCount));
     this.startingHighScore = bestScore(this.difficulty);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.controls.destroy());
@@ -201,9 +205,13 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private hitCatapult(bomb: Bomb): void {
-    const catapult = this.catapults[targetPlayerForLane(bomb.lane, this.playerCount)];
+    const target = targetPlayerForLane(
+      bomb.lane,
+      this.playerCount,
+      this.catapults.map((catapult) => !catapult.isWrecked),
+    );
     this.splashes.push(new Splash(this, bomb.x, bomb.y, EXPLOSION_RADIUS, EXPLOSION_COLOR));
-    if (!catapult.isWrecked) catapult.takeHit();
+    if (target !== null) this.catapults[target].takeHit();
   }
 
   private updateSplashes(dt: number): void {
@@ -219,7 +227,7 @@ export class PlayScene extends Phaser.Scene {
 
     const update = this.director.update(dt, this.bombs.length);
     for (const lane of update.spawnLanes) {
-      this.bombs.push(new Bomb(this, lane, bombSpeed(this.difficulty, this.director.wave)));
+      this.bombs.push(new Bomb(this, lane, laneCenterY(lane, this.laneCount), bombSpeed(this.difficulty, this.director.wave)));
     }
     if (this.director.phase === 'victory') this.finish('won');
   }

@@ -6,17 +6,23 @@ export interface DifficultySettings {
   label: string;
   startSpeed: number; // bomb speed in wave 1, px per second
   speedStep: number; // added each wave, px per second
-  lanes: readonly number[]; // lanes (0-based) bombs may walk down
+  middleLanesOnly: boolean; // bombs only walk the middle lane(s)
 }
 
-const ALL_LANES = [0, 1, 2, 3] as const;
-
 export const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultySettings> = {
-  veryEasy: { label: 'Very Easy', startSpeed: 24, speedStep: 6, lanes: [1, 2] }, // the two middle lanes, 2 and 3
-  easy: { label: 'Easy', startSpeed: 36, speedStep: 12, lanes: ALL_LANES },
-  normal: { label: 'Normal', startSpeed: 60, speedStep: 18, lanes: ALL_LANES },
-  hard: { label: 'Hard', startSpeed: 84, speedStep: 24, lanes: ALL_LANES },
+  veryEasy: { label: 'Very Easy', startSpeed: 24, speedStep: 6, middleLanesOnly: true },
+  easy: { label: 'Easy', startSpeed: 36, speedStep: 12, middleLanesOnly: false },
+  normal: { label: 'Normal', startSpeed: 60, speedStep: 18, middleLanesOnly: false },
+  hard: { label: 'Hard', startSpeed: 84, speedStep: 24, middleLanesOnly: false },
 };
+
+/** 0-based lanes bombs may walk down: the middle lane (3 lanes) or two middle lanes (4 lanes) on Very Easy, else all. */
+export function bombLanes(difficulty: Difficulty, laneCount: number): number[] {
+  const all = Array.from({ length: laneCount }, (_, lane) => lane);
+  if (!DIFFICULTY_SETTINGS[difficulty].middleLanesOnly) return all;
+  const middle = Math.floor((laneCount - 1) / 2);
+  return laneCount % 2 === 1 ? [middle] : [middle, middle + 1];
+}
 
 export const isDifficulty = (value: unknown): value is Difficulty =>
   typeof value === 'string' && (DIFFICULTIES as readonly string[]).includes(value);

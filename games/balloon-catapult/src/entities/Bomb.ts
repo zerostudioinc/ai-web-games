@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BOMB_SPAWN_X, TextureKey, laneCenterY } from '../config';
+import { BOMB_SPAWN_X, TextureKey } from '../config';
 
 const FOOT_Y = 24;
 
@@ -14,8 +14,8 @@ export class Bomb extends Phaser.GameObjects.Container {
   private stride = 0;
   private elapsedMs = 0;
 
-  constructor(scene: Phaser.Scene, lane: number, speed: number) {
-    super(scene, BOMB_SPAWN_X, laneCenterY(lane));
+  constructor(scene: Phaser.Scene, lane: number, y: number, speed: number) {
+    super(scene, BOMB_SPAWN_X, y);
     this.lane = lane;
     this.speed = speed;
 
