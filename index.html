@@ -214,6 +214,59 @@
         100% { transform: translate(190px, 36px) scale(0.9); opacity: 0.2; }
       }
 
+      /* Maze Runner thumbnail: a glowing maze, a runner jogging along it and the exit portal. */
+      .thumb.maze { background: linear-gradient(#0b1d2a, #15506b); }
+      .wall {
+        position: absolute;
+        background: #2dd4bf;
+        border-radius: 4px;
+        box-shadow: 0 0 8px rgba(45, 212, 191, 0.6);
+      }
+      .wall.w1 { left: 8%; top: 20%; width: 52%; height: 8px; }
+      .wall.w2 { left: 60%; top: 20%; width: 8px; height: 52%; }
+      .wall.w3 { left: 26%; top: 64%; width: 42%; height: 8px; }
+      .wall.w4 { left: 26%; top: 40%; width: 8px; height: 32%; }
+      .runner {
+        position: absolute;
+        left: 10%;
+        top: 40%;
+        width: 28px;
+        height: 34px;
+        border: 3px solid var(--ink);
+        border-radius: 50% 50% 30% 30%;
+        background: radial-gradient(circle at 50% 28%, #ffd2a8 0 36%, #3d8bfd 38% 100%);
+        animation: jog 3.2s ease-in-out infinite;
+      }
+      .runner::before {
+        content: '';
+        position: absolute;
+        top: -9px;
+        left: -3px;
+        width: 28px;
+        height: 12px;
+        border: 3px solid var(--ink);
+        border-radius: 14px 14px 3px 3px;
+        background: #ff7043;
+      }
+      .portal {
+        position: absolute;
+        right: 7%;
+        top: 36%;
+        width: 42px;
+        height: 42px;
+        border: 4px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 18px #00e5ff, inset 0 0 12px #00e5ff;
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+
+      @keyframes jog {
+        50% { transform: translateX(150px); }
+      }
+      @keyframes pulse {
+        50% { transform: scale(1.18); }
+      }
+
       .body {
         display: flex;
         flex-direction: column;
@@ -351,6 +404,28 @@
             <p>Defend your catapult from waves of walking bombs by lobbing water balloons. Lead your shots and survive all 5 waves.</p>
             <ul class="tags">
               <li>1-4 players</li>
+              <li>Controller</li>
+              <li>Touch</li>
+            </ul>
+            <span class="play">Play</span>
+          </div>
+        </a>
+
+        <a class="card" href="./games/maze-runner/index.html">
+          <div class="thumb maze" aria-hidden="true">
+            <span class="wall w1"></span>
+            <span class="wall w2"></span>
+            <span class="wall w3"></span>
+            <span class="wall w4"></span>
+            <span class="runner"></span>
+            <span class="portal"></span>
+          </div>
+          <div class="body">
+            <h2>Maze Runner</h2>
+            <p>Race through 10 ever-growing mazes to find the exit. Wander too far down a dead end and the path seals behind you!</p>
+            <ul class="tags">
+              <li>1 player</li>
+              <li>Keyboard</li>
               <li>Controller</li>
               <li>Touch</li>
             </ul>
