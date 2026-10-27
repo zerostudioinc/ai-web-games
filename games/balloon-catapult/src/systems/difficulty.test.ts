@@ -1,6 +1,10 @@
+/**
+ * Tests for the difficulty table: bomb speeds, lane choice and the difficulty type guard.
+ */
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTIES, bombLanes, bombSpeed, isDifficulty } from './difficulty';
 
+// Bomb speed starts at a difficulty-specific value and rises by a fixed step every wave.
 describe('bombSpeed', () => {
   it('starts at 24, 36, 60 and 84 px/s in wave 1', () => {
     expect(bombSpeed('veryEasy', 1)).toBe(24);
@@ -17,6 +21,7 @@ describe('bombSpeed', () => {
   });
 
   it('orders difficulties from slowest to fastest in every wave', () => {
+    // Compare each difficulty with the next-harder one, for every wave of a game.
     for (let wave = 1; wave <= 5; wave++) {
       for (let i = 1; i < DIFFICULTIES.length; i++) {
         expect(bombSpeed(DIFFICULTIES[i - 1], wave)).toBeLessThan(bombSpeed(DIFFICULTIES[i], wave));
@@ -25,6 +30,7 @@ describe('bombSpeed', () => {
   });
 });
 
+// Only Very Easy restricts which lanes bombs walk down.
 describe('bombLanes', () => {
   it('sends very easy bombs down only the middle lane(s)', () => {
     expect(bombLanes('veryEasy', 3)).toEqual([1]);
@@ -39,6 +45,7 @@ describe('bombLanes', () => {
   });
 });
 
+// The guard must reject anything that is not a known difficulty id.
 describe('isDifficulty', () => {
   it('accepts only the known difficulties', () => {
     for (const difficulty of DIFFICULTIES) expect(isDifficulty(difficulty)).toBe(true);

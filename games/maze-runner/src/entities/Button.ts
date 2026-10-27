@@ -1,27 +1,41 @@
-// A chunky rounded button that works with mouse, touch and (through the scene) keyboard and controller.
+/**
+ * A chunky rounded button that works with mouse, touch and (through the scene) keyboard and controller.
+ */
 import Phaser from 'phaser';
 import { COLOR, labelStyle, shade } from '../style';
 
+/** Settings for a `Button`. */
 export interface ButtonOptions {
-  width: number;
-  height: number;
-  label: string;
-  subLabel?: string;
-  fontSize?: number;
-  color?: number;
-  onClick: () => void;
+  width: number; // px
+  height: number; // px
+  label: string; // main text
+  subLabel?: string; // optional smaller text under the main label
+  fontSize?: number; // main label size in px; defaults to 32
+  color?: number; // face colour as 0xRRGGBB; defaults to light blue
+  onClick: () => void; // called on a full click (press and release on the button)
 }
 
+/** Rounded button drawn from shapes, with hover and press feedback. */
 export class Button extends Phaser.GameObjects.Container {
+  /**
+   * Draws the button and wires up its pointer events.
+   *
+   * @param scene - Scene the button is added to.
+   * @param x - Centre x in px.
+   * @param y - Centre y in px.
+   * @param options - Size, text, colour and click handler.
+   */
   constructor(scene: Phaser.Scene, x: number, y: number, options: ButtonOptions) {
     super(scene, x, y);
     const { width, height, label, subLabel, onClick } = options;
     const fontSize = options.fontSize ?? 32;
     const color = options.color ?? 0x4fc3f7;
+    // The container's origin is its centre, so shapes are drawn relative to the top-left corner at (-w/2, -h/2).
     const left = -width / 2;
     const top = -height / 2;
 
-    // Layered shapes: drop shadow, dark base, bright face and a glossy highlight.
+    // Layered rounded rectangles: drop shadow, dark base, bright face, glossy highlight, then the outline.
+    // (Objects made with `scene.make...(..., false)` are not added to the scene; the container owns them.)
     const art = scene.make.graphics({}, false);
     art.fillStyle(0x000000, 0.3).fillRoundedRect(left, top + 6, width, height, 18);
     art.fillStyle(shade(color, 0.7)).fillRoundedRect(left, top, width, height, 18);
@@ -30,6 +44,7 @@ export class Button extends Phaser.GameObjects.Container {
     art.lineStyle(3, COLOR.ink).strokeRoundedRect(left, top, width, height, 18);
     this.add(art);
 
+    // With a sub-label the main label moves up to make room for it; the sub-label is 42% of the main label's size.
     const labelY = subLabel ? -height * 0.14 : -2;
     this.add(scene.make.text({ x: 0, y: labelY, text: label, style: { ...labelStyle(fontSize), align: 'center' } }, false).setOrigin(0.5));
     if (subLabel) {
@@ -46,15 +61,19 @@ export class Button extends Phaser.GameObjects.Container {
 
     // Only a press that started on the button and ends on it counts as a click.
     let pressed = false;
+    // Hover: grow slightly.
     this.on(Phaser.Input.Events.POINTER_OVER, () => this.setScale(1.06));
+    // Leaving the button cancels a press in progress.
     this.on(Phaser.Input.Events.POINTER_OUT, () => {
       pressed = false;
       this.setScale(1);
     });
+    // Press: shrink and remember that the press began on this button.
     this.on(Phaser.Input.Events.POINTER_DOWN, () => {
       pressed = true;
       this.setScale(0.96);
     });
+    // Release over the button: return to the hover size, and click only if the press began here.
     this.on(Phaser.Input.Events.POINTER_UP, () => {
       this.setScale(1.06);
       if (!pressed) return;
@@ -65,7 +84,12 @@ export class Button extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
-  /** Turns pointer input on or off, so a hidden button cannot be clicked. */
+  /**
+   * Turns pointer input on or off, so a hidden button cannot be clicked.
+   *
+   * @param enabled - True to accept clicks and touches, false to ignore them.
+   * @returns This button, so calls can be chained.
+   */
   setEnabled(enabled: boolean): this {
     if (this.input) this.input.enabled = enabled;
     return this;

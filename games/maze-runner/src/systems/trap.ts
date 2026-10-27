@@ -1,17 +1,32 @@
-// The dead-end rule: walk far enough into a branch that leads nowhere and the way back collapses.
+/**
+ * The dead-end rule: walk far enough into a branch that leads nowhere and the way back collapses.
+ */
 import { DIRECTIONS, stepCell, type Cell, type Maze } from './maze';
 
-/** True once the runner is `limit` steps (or more) into a dead end, which seals the path behind them. */
+/**
+ * True once the runner is `limit` steps (or more) into a dead end, which seals the path behind them.
+ *
+ * @param depth - Steps the runner's cell lies from the solution route, from `Maze.depthAt` (0 on the route).
+ * @param limit - The difficulty's `trapDepth`: how deep into a dead end the runner may go before the trap springs.
+ * @returns Whether the trap springs.
+ */
 export const isTrapped = (depth: number, limit: number): boolean => depth >= limit;
 
 /**
  * True when one more step deeper into a dead end would spring the trap, so the scene can warn the player.
  * It stays quiet at the end of a short dead end, where no deeper step exists.
+ *
+ * @param maze - The maze being played, including any passages already sealed.
+ * @param cell - The runner's current cell, inside the grid.
+ * @param limit - The difficulty's `trapDepth`.
+ * @returns Whether a warning should be shown for this cell.
  */
 export function isTrapImminent(maze: Maze, cell: Cell, limit: number): boolean {
   const depth = maze.depthAt(cell);
+  // Only the cell one step short of the limit can warn, and the route itself (depth 0) never does.
   if (depth === 0 || depth !== limit - 1) return false;
 
+  // The warning needs an open way that leads deeper; a dead end's last cell has none, so it stays quiet.
   return DIRECTIONS.some((direction) => {
     const next = stepCell(cell, direction);
     return maze.canMove(cell, direction) && maze.contains(next) && maze.depthAt(next) > depth;

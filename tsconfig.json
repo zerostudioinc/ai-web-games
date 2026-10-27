@@ -1,18 +1,26 @@
 {
   "compilerOptions": {
+    // Modern syntax, and ES modules resolved the way a bundler (Vite) resolves them.
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    // Built-in types available to the code: ES2022 plus the browser DOM.
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // Ambient types: Vite's asset and CSS imports, and Node's APIs (used by vite.config.ts).
     "types": ["vite/client", "node"],
+    // Strict checking, and errors for unused code or an accidental switch fall-through.
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    // Default imports of CommonJS modules, and every file must compile on its own (Vite transpiles file by file).
     "esModuleInterop": true,
     "isolatedModules": true,
+    // Skip checking the .d.ts files of dependencies, which speeds up type checks.
     "skipLibCheck": true,
+    // Type-check only; Vite does the actual building.
     "noEmit": true
   },
+  // Everything that is type-checked: game code, code shared between games, and the Vite config.
   "include": ["games", "shared", "vite.config.ts"]
 }

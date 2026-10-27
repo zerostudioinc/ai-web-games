@@ -1,28 +1,44 @@
-// Turns held directions into discrete steps: one on press, then auto-repeat while the key stays down.
+/**
+ * Turns held directions into discrete steps: one on press, then auto-repeat while the key stays down.
+ */
 import { DIRECTIONS, type Direction } from './maze';
 
+/** Which of the four directions are currently held. */
 export type DirectionFlags = Record<Direction, boolean>;
 
+/**
+ * Creates a flag set with every direction released.
+ *
+ * @returns A fresh object (never shared) with all four directions false.
+ */
 export const noDirections = (): DirectionFlags => ({ up: false, right: false, down: false, left: false });
 
+/** Converts the directions held each frame into single steps, with a hold delay and then a repeat rate. */
 export class StepRepeater {
-  private previous = noDirections();
+  private previous = noDirections(); // directions that were live at the previous update, to spot fresh presses
   /** Directions that were down when discard() ran; ignored until they have been released. */
   private suppressed = noDirections();
-  private active: Direction | null = null;
-  private pending: Direction | null = null;
-  private timerMs = 0;
+  private active: Direction | null = null; // the direction currently auto-repeating, if any
+  private pending: Direction | null = null; // the step waiting for `take()`
+  private timerMs = 0; // time left until the next repeat
 
   /**
-   * @param delayMs how long a held direction waits before it starts repeating
-   * @param intervalMs time between repeats after that
+   * Creates a repeater with the given timing.
+   *
+   * @param delayMs - How long a held direction waits, in ms, before it starts repeating.
+   * @param intervalMs - Time between repeats after that, in ms.
    */
   constructor(
     private readonly delayMs: number,
     private readonly intervalMs: number,
   ) {}
 
-  /** Feed the directions currently held; call once per frame. */
+  /**
+   * Feeds the directions currently held; call once per frame.
+   *
+   * @param deltaMs - Time since the previous frame, in ms.
+   * @param held - Which directions are held right now, from any input source.
+   */
   update(deltaMs: number, held: DirectionFlags): void {
     // A direction ignored by discard() counts again only once it has been let go.
     const live = noDirections();
@@ -60,7 +76,11 @@ export class StepRepeater {
     }
   }
 
-  /** The step waiting to be taken, if any. The caller decides when it is ready to move. */
+  /**
+   * The step waiting to be taken, if any. The caller decides when it is ready to move.
+   *
+   * @returns The direction to step in, or null when nothing is waiting; a step is handed out only once.
+   */
   take(): Direction | null {
     const step = this.pending;
     this.pending = null;
