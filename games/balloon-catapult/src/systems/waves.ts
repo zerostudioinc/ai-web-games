@@ -20,7 +20,7 @@ export class WaveDirector {
   private remaining = 0;
 
   constructor(
-    private readonly laneCount: number,
+    private readonly lanes: readonly number[],
     private readonly rng: () => number = Math.random,
   ) {}
 
@@ -48,7 +48,7 @@ export class WaveDirector {
       case 'spawning':
         this.timerMs -= deltaMs;
         while (this.timerMs <= 0 && this.remaining > 0) {
-          result.spawnLanes.push(Math.floor(this.rng() * this.laneCount));
+          result.spawnLanes.push(this.lanes[Math.floor(this.rng() * this.lanes.length)]);
           this.remaining -= 1;
           this.timerMs += spawnIntervalMs(this.wave);
         }

@@ -13,14 +13,14 @@ interface ResultData {
   won: boolean;
   score: number;
   highScore: number;
-  newHighScore: boolean;
+  rank: number | null; // 0-based place in this difficulty's top 3, or null
   wave: number;
   players: number;
   difficulty: Difficulty;
 }
 
 export class ResultScene extends Phaser.Scene {
-  private result: ResultData = { won: false, score: 0, highScore: 0, newHighScore: false, wave: 1, players: 1, difficulty: 'normal' };
+  private result: ResultData = { won: false, score: 0, highScore: 0, rank: null, wave: 1, players: 1, difficulty: 'normal' };
   private title!: TitleBanner;
   private pad!: MenuPadInput;
   private openedAt = 0;
@@ -34,7 +34,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(): void {
-    const { won, score, highScore, newHighScore, wave, difficulty } = this.result;
+    const { won, score, highScore, rank, wave, difficulty } = this.result;
     const cx = GAME_WIDTH / 2;
     this.openedAt = this.time.now;
 
@@ -52,8 +52,8 @@ export class ResultScene extends Phaser.Scene {
     const ink = hex(COLOR.ink);
     this.add.text(cx, 290, `Score: ${score}`, plainStyle(56, ink)).setOrigin(0.5);
     this.add.text(cx, 355, `Best: ${highScore}`, plainStyle(36, ink)).setOrigin(0.5);
-    if (newHighScore) this.add.text(cx, 405, 'New high score!', plainStyle(34, '#e65100')).setOrigin(0.5);
-    this.add.text(cx, newHighScore ? 445 : 420, `Reached wave ${wave} of ${TOTAL_WAVES} (${DIFFICULTY_SETTINGS[difficulty].label})`, plainStyle(26, ink)).setOrigin(0.5);
+    if (rank !== null) this.add.text(cx, 405, rank === 0 ? 'New high score!' : 'Top 3 score!', plainStyle(34, '#e65100')).setOrigin(0.5);
+    this.add.text(cx, rank !== null ? 445 : 420, `Reached wave ${wave} of ${TOTAL_WAVES} (${DIFFICULTY_SETTINGS[difficulty].label})`, plainStyle(26, ink)).setOrigin(0.5);
 
     new Button(this, cx - 170, 560, { width: 300, height: 84, label: 'Play again', fontSize: 38, color: 0x81c784, onClick: () => this.playAgain() });
     new Button(this, cx + 170, 560, { width: 300, height: 84, label: 'Menu', fontSize: 38, color: 0x90caf9, onClick: () => this.scene.start(SceneKey.Menu) });

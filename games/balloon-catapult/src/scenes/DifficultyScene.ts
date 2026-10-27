@@ -1,21 +1,22 @@
 import Phaser from 'phaser';
 import { Button } from '../entities/Button';
 import { TitleBanner } from '../entities/TitleBanner';
-import { GAME_WIDTH, MAX_PLAYERS, SceneKey, TextureKey } from '../config';
+import { CORNER_BUTTON, DIFFICULTY_COLORS, GAME_WIDTH, MAX_PLAYERS, SceneKey, TextureKey } from '../config';
 import { labelStyle } from '../style';
-import { DIFFICULTIES, DIFFICULTY_SETTINGS, type Difficulty } from '../systems/difficulty';
+import { DIFFICULTIES, DIFFICULTY_SETTINGS } from '../systems/difficulty';
 import { MenuPadInput } from '../systems/MenuPadInput';
 
 const INPUT_DELAY_MS = 400;
-const BUTTON_COLORS: Record<Difficulty, number> = { easy: 0x81c784, normal: 0xffd54f, hard: 0xef5350 };
-const KEY_NAMES = ['ONE', 'TWO', 'THREE'] as const;
-const BUTTON_WIDTH = 260;
+const KEY_NAMES = ['ONE', 'TWO', 'THREE', 'FOUR'] as const;
+const DEFAULT_SELECTION = DIFFICULTIES.indexOf('normal');
+const BUTTON_WIDTH = 265;
 const BUTTON_HEIGHT = 170;
+const BUTTON_SPACING = 300;
 const BUTTON_Y = 400;
 
 export class DifficultyScene extends Phaser.Scene {
   private players = 1;
-  private selected = 1; // Normal
+  private selected = DEFAULT_SELECTION;
   private title!: TitleBanner;
   private ring!: Phaser.GameObjects.Graphics;
   private pad!: MenuPadInput;
@@ -27,7 +28,7 @@ export class DifficultyScene extends Phaser.Scene {
 
   init(data: { players?: number }): void {
     this.players = Phaser.Math.Clamp(data.players ?? 1, 1, MAX_PLAYERS);
-    this.selected = 1;
+    this.selected = DEFAULT_SELECTION;
   }
 
   create(): void {
@@ -46,17 +47,19 @@ export class DifficultyScene extends Phaser.Scene {
         height: BUTTON_HEIGHT,
         label: settings.label,
         subLabel: `${settings.startSpeed} px/s, +${settings.speedStep}/wave`,
-        fontSize: 54,
-        color: BUTTON_COLORS[difficulty],
+        fontSize: 48,
+        color: DIFFICULTY_COLORS[difficulty],
         onClick: () => this.start(index),
       });
       this.input.keyboard?.on(`keydown-${KEY_NAMES[index]}`, () => this.start(index));
     });
     this.drawRing();
+    this.add.text(this.buttonX(0), BUTTON_Y + BUTTON_HEIGHT / 2 + 34, 'For little players:\nonly 2 lanes, slow bombs', labelStyle(22)).setOrigin(0.5, 0).setAlign('center');
 
-    new Button(this, 76, 39, { width: 112, height: 42, label: 'Back', fontSize: 22, color: 0x90caf9, onClick: () => this.back() });
+    const { width, height, fontSize, margin } = CORNER_BUTTON;
+    new Button(this, margin + width / 2, margin + height / 2 - 2, { width, height, label: 'Back', fontSize, color: 0x90caf9, onClick: () => this.back() });
     this.add
-      .text(cx, 600, 'Click or press 1-3  |  Left/Right + Enter  |  Controller: D-pad + any button', labelStyle(20))
+      .text(cx, 640, 'Click or press 1-4  |  Left/Right + Enter  |  Controller: D-pad + any button', labelStyle(20))
       .setOrigin(0.5);
 
     this.input.keyboard?.on('keydown-LEFT', () => this.moveSelection(-1));
@@ -79,7 +82,7 @@ export class DifficultyScene extends Phaser.Scene {
   }
 
   private buttonX(index: number): number {
-    return GAME_WIDTH / 2 + (index - 1) * 300;
+    return GAME_WIDTH / 2 + (index - (DIFFICULTIES.length - 1) / 2) * BUTTON_SPACING;
   }
 
   private acceptingInput(): boolean {
