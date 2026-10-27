@@ -1,12 +1,11 @@
 import Phaser from 'phaser';
-import { FIELD_TOP, GAME_HEIGHT, GAME_WIDTH, LANE_COUNT, LANE_HEIGHT, TextureKey } from '../config';
+import { FIELD_HEIGHT, FIELD_TOP, GAME_HEIGHT, GAME_WIDTH, LANE_COUNTS, LANE_HEIGHT, TextureKey, fieldTextureKey } from '../config';
 import { COLOR, shade } from '../style';
 import { scatterPoints } from '../systems/scenery';
 
 type Gfx = Phaser.GameObjects.Graphics;
 
 const PATH_HEIGHT = 104;
-const FIELD_HEIGHT = GAME_HEIGHT - FIELD_TOP;
 const FLOWER_COLORS = [0xffffff, 0xffeb3b, 0xff8fab, 0xb39ddb];
 
 function bake(scene: Phaser.Scene, key: string, width: number, height: number, draw: (g: Gfx) => void): void {
@@ -43,9 +42,17 @@ function scatterGrassDetail(g: Gfx, seed: number, area: { left: number; top: num
   scatterPoints(seed + 1000, flowers, area).forEach((p, i) => drawFlower(g, p.x, p.y, FLOWER_COLORS[i % FLOWER_COLORS.length]));
 }
 
-function drawField(g: Gfx): void {
-  for (let lane = 0; lane < LANE_COUNT; lane++) {
-    g.fillStyle(lane % 2 === 0 ? COLOR.grassLight : COLOR.grassDark).fillRect(0, lane * LANE_HEIGHT, GAME_WIDTH, LANE_HEIGHT);
+function drawField(g: Gfx, laneCount: number): void {
+  const offset = (FIELD_HEIGHT - laneCount * LANE_HEIGHT) / 2; // empty grass above and below the lanes
+  const bandColor = (lane: number): number => (Math.abs(lane) % 2 === 0 ? COLOR.grassLight : COLOR.grassDark);
+  for (let lane = 0; lane < laneCount; lane++) {
+    g.fillStyle(bandColor(lane)).fillRect(0, offset + lane * LANE_HEIGHT, GAME_WIDTH, LANE_HEIGHT);
+  }
+  if (offset > 0) {
+    g.fillStyle(bandColor(-1)).fillRect(0, 0, GAME_WIDTH, offset);
+    g.fillStyle(bandColor(laneCount)).fillRect(0, offset + laneCount * LANE_HEIGHT, GAME_WIDTH, offset);
+    scatterGrassDetail(g, 91, { left: 0, right: GAME_WIDTH, top: 14, bottom: offset - 8 }, 16, 4);
+    scatterGrassDetail(g, 93, { left: 0, right: GAME_WIDTH, top: offset + laneCount * LANE_HEIGHT + 14, bottom: FIELD_HEIGHT - 8 }, 16, 4);
   }
   // Lawn-mower bands.
   for (let x = 160; x < GAME_WIDTH; x += 320) {
@@ -53,8 +60,8 @@ function drawField(g: Gfx): void {
   }
 
   const margin = (LANE_HEIGHT - PATH_HEIGHT) / 2;
-  for (let lane = 0; lane < LANE_COUNT; lane++) {
-    const laneTop = lane * LANE_HEIGHT;
+  for (let lane = 0; lane < laneCount; lane++) {
+    const laneTop = offset + lane * LANE_HEIGHT;
     const pathTop = laneTop + margin;
     g.fillStyle(COLOR.pathEdge).fillRoundedRect(0, pathTop - 3, GAME_WIDTH, PATH_HEIGHT + 6, 14);
     g.fillStyle(COLOR.path).fillRoundedRect(0, pathTop, GAME_WIDTH, PATH_HEIGHT, 12);
@@ -136,7 +143,9 @@ function drawBalloon(g: Gfx): void {
 }
 
 export function generateTextures(scene: Phaser.Scene): void {
-  bake(scene, TextureKey.Field, GAME_WIDTH, FIELD_HEIGHT, drawField);
+  for (const laneCount of LANE_COUNTS) {
+    bake(scene, fieldTextureKey(laneCount), GAME_WIDTH, FIELD_HEIGHT, (g) => drawField(g, laneCount));
+  }
   bake(scene, TextureKey.HudBar, GAME_WIDTH, FIELD_TOP, drawHudBar);
   bake(scene, TextureKey.Cloud, 220, 100, drawCloud);
   bake(scene, TextureKey.MenuBackground, GAME_WIDTH, GAME_HEIGHT, drawMenuBackground);

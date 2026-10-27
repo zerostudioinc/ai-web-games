@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DIFFICULTIES, DIFFICULTY_SETTINGS, bombSpeed, isDifficulty } from './difficulty';
+import { DIFFICULTIES, bombLanes, bombSpeed, isDifficulty } from './difficulty';
 
 describe('bombSpeed', () => {
   it('starts at 24, 36, 60 and 84 px/s in wave 1', () => {
@@ -25,14 +25,16 @@ describe('bombSpeed', () => {
   });
 });
 
-describe('lanes', () => {
-  it('sends very easy bombs down the middle lanes (2 and 3) only', () => {
-    expect(DIFFICULTY_SETTINGS.veryEasy.lanes).toEqual([1, 2]);
+describe('bombLanes', () => {
+  it('sends very easy bombs down only the middle lane(s)', () => {
+    expect(bombLanes('veryEasy', 3)).toEqual([1]);
+    expect(bombLanes('veryEasy', 4)).toEqual([1, 2]);
   });
 
-  it('uses all four lanes on every other difficulty', () => {
+  it('uses every lane on every other difficulty', () => {
     for (const difficulty of ['easy', 'normal', 'hard'] as const) {
-      expect(DIFFICULTY_SETTINGS[difficulty].lanes).toEqual([0, 1, 2, 3]);
+      expect(bombLanes(difficulty, 3)).toEqual([0, 1, 2]);
+      expect(bombLanes(difficulty, 4)).toEqual([0, 1, 2, 3]);
     }
   });
 });

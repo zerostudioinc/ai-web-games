@@ -5,10 +5,10 @@ export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
 export const MAX_PLAYERS = 4;
-export const LANE_COUNT = 4;
 
 export const FIELD_TOP = 80;
-export const LANE_HEIGHT = (GAME_HEIGHT - FIELD_TOP) / LANE_COUNT;
+export const FIELD_HEIGHT = GAME_HEIGHT - FIELD_TOP;
+export const LANE_HEIGHT = 160;
 export const FIELD_BOUNDS: Bounds = { left: 0, top: FIELD_TOP, right: GAME_WIDTH, bottom: GAME_HEIGHT };
 
 export const CATAPULT_X = 110;
@@ -39,7 +39,6 @@ export const SceneKey = {
 } as const;
 
 export const TextureKey = {
-  Field: 'grass-field',
   HudBar: 'hud-bar',
   Cloud: 'cloud',
   MenuBackground: 'menu-bg',
@@ -47,11 +46,22 @@ export const TextureKey = {
   Balloon: 'balloon',
 } as const;
 
-export const laneCenterY = (lane: number): number => FIELD_TOP + (lane + 0.5) * LANE_HEIGHT;
+// Odd player counts use 3 lanes and even counts use 4, so the catapults are always centred.
+export const LANE_COUNTS = [3, 4] as const;
+export const laneCountFor = (playerCount: number): number => (playerCount % 2 === 1 ? 3 : 4);
 
-// Catapults are spaced one lane apart and centred as a group on the field, whatever the player count.
+export const fieldTextureKey = (laneCount: number): string => `grass-field-${laneCount}`;
+
+// Lanes are LANE_HEIGHT tall and centred on the field; spare field above and below is plain grass.
+export const laneCenterY = (lane: number, laneCount: number): number =>
+  FIELD_TOP + FIELD_HEIGHT / 2 + (lane - (laneCount - 1) / 2) * LANE_HEIGHT;
+
+/** 0-based lane a player's catapult stands in: 1 player -> lane 2, 2 -> lanes 2-3, 3 -> lanes 1-3, 4 -> lanes 1-4. */
+export const playerLane = (playerIndex: number, playerCount: number): number =>
+  (laneCountFor(playerCount) - playerCount) / 2 + playerIndex;
+
 export const catapultY = (playerIndex: number, playerCount: number): number =>
-  FIELD_TOP + (GAME_HEIGHT - FIELD_TOP) / 2 + (playerIndex - (playerCount - 1) / 2) * LANE_HEIGHT;
+  laneCenterY(playerLane(playerIndex, playerCount), laneCountFor(playerCount));
 
 // High scores and Home (and Back) share one size and sit in the top corners of menu screens.
 export const CORNER_BUTTON = { width: 150, height: 42, fontSize: 22, margin: 20 } as const;

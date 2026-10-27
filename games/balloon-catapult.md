@@ -6,13 +6,18 @@ Requirements:
 - Landscape support.
 - 1 to 4 players.
 - Bluetooth controller (more than one player) plus touch controls (one player only). Player one should always be able to use a bluetooth controller if they want instead of touch.
-- 4 lanes of path for the bomb to walk.
-- Catapult is always centered when game is played with 1 or 4 players.
+- A maximum of 4 lanes of path for the bomb to walk. Number lane 1 to 4 in the requirements.
+- Catapult is always centered when game is played with 1 or 4 players. To achieve this:
+  - 1 player is playing: 3 bomb lanes and the player is in lane 2
+  - 2 players is playing: 4 bomb lanes and the player is in lane 2 and 3
+  - 3 players is playing: 3 bomb lanes and the player is in lane 1, 2 and 3
+  - 4 players is playing: 4 bomb lanes and the player is in lane 1, 2, 3 and 4
+- When playing with 2 or more players, the player will be hit by the bomb closest to them, when all players are out and left with one player, all bombs that lands will hit the player.
 - Dificulty Mode: After the number of players is selected, add a difficulty selection with the choice of:
   - Very Easy
     - Starting Bomb Speed: 24px/s
     - Speed Increment per Wave: 6px/s
-    - Bomb only shows up in two lanes, lane 2 and lane 3.
+    - Bomb only shows up in two middle lanes.
   - Easy
     - Starting Bomb Speed: 36px/s
     - Speed Increment per Wave: 12px/s
@@ -27,6 +32,7 @@ Requirements:
 - Show the total number of bombs remaining in each wave until it goes down to 0.
 - Players will get 1 point for every bomb they destroy.
 - Prevent player from being able to fire water balloon in quick sucession, add a reload delay for each shot to make it more difficult to prevent buttom spamming.
+  - The control need to be smooth, as the fire button can be trigger while the reticle is moving.
 - The catapult will have a reload animation to indicate when it is ready to fire again.
 - Score, high score in localStorage, pause screen.
   - Keep a top 3 high score for each difficulty mode.

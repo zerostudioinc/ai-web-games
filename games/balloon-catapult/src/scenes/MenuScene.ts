@@ -87,7 +87,7 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(cx, 570, 'Tap a number or press 1-4  |  Controller: any button starts one player per controller', labelStyle(20)).setOrigin(0.5);
 
     for (let i = 0; i < 3; i++) {
-      const walker = new Bomb(this, 0, 40 + i * 10);
+      const walker = new Bomb(this, 0, 678, 40 + i * 10);
       walker.setPosition(150 + i * 480, 678);
       this.walkers.push(walker);
     }
