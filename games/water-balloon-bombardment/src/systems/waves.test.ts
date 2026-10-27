@@ -3,23 +3,20 @@ import {
   INTERMISSION_MS,
   TOTAL_WAVES,
   WaveDirector,
-  bombSpeed,
   bombsInWave,
   spawnIntervalMs,
 } from './waves';
 
 describe('wave tables', () => {
+  it('has 5 waves', () => {
+    expect(TOTAL_WAVES).toBe(5);
+  });
+
   it('starts at 20 bombs and grows by 5 per wave', () => {
     expect(bombsInWave(1)).toBe(20);
     expect(bombsInWave(2)).toBe(25);
     expect(bombsInWave(3)).toBe(30);
-    expect(bombsInWave(TOTAL_WAVES)).toBe(65);
-  });
-
-  it('walks faster every wave', () => {
-    for (let wave = 2; wave <= TOTAL_WAVES; wave++) {
-      expect(bombSpeed(wave)).toBeGreaterThan(bombSpeed(wave - 1));
-    }
+    expect(bombsInWave(TOTAL_WAVES)).toBe(40);
   });
 
   it('never spawns with a zero or negative interval', () => {
@@ -60,7 +57,22 @@ describe('WaveDirector', () => {
     expect(director.phase).toBe('intermission');
   });
 
-  it('plays all waves and ends in victory with 425 bombs', () => {
+  it('counts bombs remaining in the wave down to 0', () => {
+    const director = new WaveDirector(4, () => 0);
+    expect(director.bombsRemaining(0)).toBe(20); // next wave, during the intermission
+
+    director.update(INTERMISSION_MS, 0);
+    director.update(1, 0); // spawns the first bomb(s)
+    const spawnedSoFar = 20 - director.bombsRemaining(0);
+    expect(spawnedSoFar).toBeGreaterThan(0);
+    expect(director.bombsRemaining(spawnedSoFar)).toBe(20); // alive bombs still count
+
+    while (director.phase === 'spawning') director.update(spawnIntervalMs(1), 0);
+    expect(director.bombsRemaining(7)).toBe(7);
+    expect(director.bombsRemaining(0)).toBe(0);
+  });
+
+  it('plays all waves and ends in victory with 150 bombs', () => {
     const director = new WaveDirector(4, () => 0.5);
     let spawned = 0;
     const cleared: number[] = [];
@@ -72,7 +84,7 @@ describe('WaveDirector', () => {
     }
 
     expect(director.phase).toBe('victory');
-    expect(spawned).toBe(425);
-    expect(cleared).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(spawned).toBe(150);
+    expect(cleared).toEqual([1, 2, 3, 4, 5]);
   });
 });

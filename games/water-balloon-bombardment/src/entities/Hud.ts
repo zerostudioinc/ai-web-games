@@ -7,6 +7,7 @@ export class Hud {
   private readonly scoreText: Phaser.GameObjects.Text;
   private readonly highText: Phaser.GameObjects.Text;
   private readonly waveText: Phaser.GameObjects.Text;
+  private readonly bombsText: Phaser.GameObjects.Text;
   private readonly banner: Phaser.GameObjects.Text;
   private readonly statusTexts: Phaser.GameObjects.Text[] = [];
 
@@ -14,8 +15,9 @@ export class Hud {
     scene.add.image(0, 0, TextureKey.HudBar).setOrigin(0).setDepth(19);
 
     this.scoreText = scene.add.text(24, 4, '', labelStyle(30)).setDepth(20);
-    this.highText = scene.add.text(250, 4, '', labelStyle(30, hex(COLOR.gold))).setDepth(20);
-    this.waveText = scene.add.text(GAME_WIDTH / 2 + 90, 4, '', labelStyle(30)).setDepth(20);
+    this.highText = scene.add.text(240, 4, '', labelStyle(30, hex(COLOR.gold))).setDepth(20);
+    this.waveText = scene.add.text(480, 4, '', labelStyle(30)).setDepth(20);
+    this.bombsText = scene.add.text(700, 4, '', labelStyle(30, '#ffab91')).setDepth(20);
 
     for (let i = 0; i < playerCount; i++) {
       this.statusTexts.push(scene.add.text(24 + i * 300, 48, '', labelStyle(20, hex(PLAYER_COLORS[i]))).setDepth(20));
@@ -40,6 +42,10 @@ export class Hud {
 
   setWave(wave: number, total: number): void {
     this.waveText.setText(`Wave ${wave}/${total}`);
+  }
+
+  setBombsRemaining(count: number): void {
+    this.bombsText.setText(`Bombs left: ${count}`);
   }
 
   setPlayerStatus(playerIndex: number, text: string): void {

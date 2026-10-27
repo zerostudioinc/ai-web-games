@@ -1,8 +1,7 @@
-export const TOTAL_WAVES = 10;
+export const TOTAL_WAVES = 5;
 export const INTERMISSION_MS = 2500;
 
 export const bombsInWave = (wave: number): number => 20 + 5 * (wave - 1);
-export const bombSpeed = (wave: number): number => 40 + 12 * (wave - 1); // px per second
 export const spawnIntervalMs = (wave: number): number => 1400 - 100 * (wave - 1);
 
 export type WavePhase = 'intermission' | 'spawning' | 'clearing' | 'victory';
@@ -24,6 +23,12 @@ export class WaveDirector {
     private readonly laneCount: number,
     private readonly rng: () => number = Math.random,
   ) {}
+
+  /** Bombs of the current wave not yet destroyed; in an intermission, the next wave's total. */
+  bombsRemaining(aliveBombs: number): number {
+    if (this.phase === 'intermission') return bombsInWave(this.wave + 1);
+    return this.remaining + aliveBombs;
+  }
 
   update(deltaMs: number, aliveBombs: number): DirectorUpdate {
     const result: DirectorUpdate = { spawnLanes: [], waveStarted: null, waveCleared: null };

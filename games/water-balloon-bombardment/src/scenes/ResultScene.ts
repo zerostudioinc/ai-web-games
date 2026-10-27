@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { Button } from '../entities/Button';
 import { TitleBanner } from '../entities/TitleBanner';
-import { GAME_WIDTH, MAX_PLAYERS, SceneKey, TextureKey } from '../config';
+import { GAME_WIDTH, SceneKey, TextureKey } from '../config';
 import { COLOR, hex, labelStyle, plainStyle } from '../style';
-import { isFireButtonDown } from '../systems/PlayerInputSystem';
+import { DIFFICULTY_SETTINGS, type Difficulty } from '../systems/difficulty';
+import { MenuPadInput } from '../systems/MenuPadInput';
+import { TOTAL_WAVES } from '../systems/waves';
 
 const INPUT_DELAY_MS = 700; // so a fire button held at the end doesn't skip the screen
 
@@ -14,11 +16,13 @@ interface ResultData {
   newHighScore: boolean;
   wave: number;
   players: number;
+  difficulty: Difficulty;
 }
 
 export class ResultScene extends Phaser.Scene {
-  private result: ResultData = { won: false, score: 0, highScore: 0, newHighScore: false, wave: 1, players: 1 };
+  private result: ResultData = { won: false, score: 0, highScore: 0, newHighScore: false, wave: 1, players: 1, difficulty: 'normal' };
   private title!: TitleBanner;
+  private pad!: MenuPadInput;
   private openedAt = 0;
 
   constructor() {
@@ -30,7 +34,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(): void {
-    const { won, score, highScore, newHighScore, wave } = this.result;
+    const { won, score, highScore, newHighScore, wave, difficulty } = this.result;
     const cx = GAME_WIDTH / 2;
     this.openedAt = this.time.now;
 
@@ -49,7 +53,7 @@ export class ResultScene extends Phaser.Scene {
     this.add.text(cx, 290, `Score: ${score}`, plainStyle(56, ink)).setOrigin(0.5);
     this.add.text(cx, 355, `Best: ${highScore}`, plainStyle(36, ink)).setOrigin(0.5);
     if (newHighScore) this.add.text(cx, 405, 'New high score!', plainStyle(34, '#e65100')).setOrigin(0.5);
-    this.add.text(cx, newHighScore ? 445 : 420, `Reached wave ${wave} of 10`, plainStyle(26, ink)).setOrigin(0.5);
+    this.add.text(cx, newHighScore ? 445 : 420, `Reached wave ${wave} of ${TOTAL_WAVES} (${DIFFICULTY_SETTINGS[difficulty].label})`, plainStyle(26, ink)).setOrigin(0.5);
 
     new Button(this, cx - 170, 560, { width: 300, height: 84, label: 'Play again', fontSize: 38, color: 0x81c784, onClick: () => this.playAgain() });
     new Button(this, cx + 170, 560, { width: 300, height: 84, label: 'Menu', fontSize: 38, color: 0x90caf9, onClick: () => this.scene.start(SceneKey.Menu) });
@@ -57,18 +61,12 @@ export class ResultScene extends Phaser.Scene {
 
     this.input.keyboard?.on('keydown-ENTER', () => this.acceptingInput() && this.playAgain());
     this.input.keyboard?.on('keydown-SPACE', () => this.acceptingInput() && this.playAgain());
+    this.pad = new MenuPadInput(this);
   }
 
   update(_time: number, delta: number): void {
     this.title.update(delta);
-    if (!this.acceptingInput()) return;
-    for (let i = 0; i < MAX_PLAYERS; i++) {
-      const pad = this.input.gamepad?.getPad(i);
-      if (pad?.connected && isFireButtonDown(pad)) {
-        this.playAgain();
-        return;
-      }
-    }
+    if (this.pad.poll().confirm && this.acceptingInput()) this.playAgain();
   }
 
   private acceptingInput(): boolean {
@@ -76,6 +74,6 @@ export class ResultScene extends Phaser.Scene {
   }
 
   private playAgain(): void {
-    this.scene.start(SceneKey.Play, { players: this.result.players });
+    this.scene.start(SceneKey.Play, { players: this.result.players, difficulty: this.result.difficulty });
   }
 }

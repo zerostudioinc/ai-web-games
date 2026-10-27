@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FIELD_BOUNDS, MAX_PLAYERS } from '../config';
 import { clamp, type Vec2 } from './movement';
+import { padIndexForPlayer, playerForPadIndex } from './players';
 
 const STICK_DEADZONE = 0.25;
 const START_BUTTON = 9;
@@ -14,8 +15,8 @@ export function isFireButtonDown(pad: Phaser.Input.Gamepad.Gamepad): boolean {
 }
 
 /**
- * Per-player input. Player 0 also accepts keyboard; controller N drives player N.
- * Touch/mouse aiming and tap-to-fire are only active in single-player games.
+ * Per-player input. Keyboard, mouse and touch always drive player 1; controllers are
+ * assigned by `players.ts` (player 2 first, so player 1 only gets one when everyone else has).
  * Call `poll()` once per frame before reading `firePressed` / `pausePressed`.
  */
 export class PlayerInputSystem {
@@ -23,18 +24,17 @@ export class PlayerInputSystem {
   private readonly wasd?: WasdKeys;
   private readonly fireKey?: Phaser.Input.Keyboard.Key;
   private readonly pauseKeys: Phaser.Input.Keyboard.Key[] = [];
-  private readonly touchEnabled: boolean;
 
   private readonly fireEdge: boolean[] = new Array<boolean>(MAX_PLAYERS).fill(false);
-  private readonly padFireDown: boolean[] = new Array<boolean>(MAX_PLAYERS).fill(false);
-  private readonly padStartDown: boolean[] = new Array<boolean>(MAX_PLAYERS).fill(false);
+  private readonly padFireDown: boolean[] = new Array<boolean>(MAX_PLAYERS).fill(false); // by pad index
+  private readonly padStartDown: boolean[] = new Array<boolean>(MAX_PLAYERS).fill(false); // by pad index
   private pauseEdge = false;
   private touchFire = false;
   private aimTarget: Vec2 | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
-    playerCount: number,
+    private readonly playerCount: number,
   ) {
     const keyboard = scene.input.keyboard;
     this.cursors = keyboard?.createCursorKeys();
@@ -45,11 +45,8 @@ export class PlayerInputSystem {
       if (key) this.pauseKeys.push(key);
     }
 
-    this.touchEnabled = playerCount === 1;
-    if (this.touchEnabled) {
-      scene.input.on(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
-      scene.input.on(Phaser.Input.Events.POINTER_MOVE, this.onPointerMove, this);
-    }
+    scene.input.on(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
+    scene.input.on(Phaser.Input.Events.POINTER_MOVE, this.onPointerMove, this);
 
     // Buttons already held when the scene starts must not count as a fresh press.
     for (let i = 0; i < MAX_PLAYERS; i++) {
@@ -78,9 +75,11 @@ export class PlayerInputSystem {
       const connected = pad?.connected ?? false;
 
       const fireDown = connected && !!pad && isFireButtonDown(pad);
-      if (fireDown && !this.padFireDown[i]) this.fireEdge[i] = true;
+      const player = playerForPadIndex(i, this.playerCount);
+      if (fireDown && !this.padFireDown[i] && player !== null) this.fireEdge[player] = true;
       this.padFireDown[i] = fireDown;
 
+      // Any controller's Start button pauses.
       const startDown = connected && !!pad?.buttons[START_BUTTON]?.pressed;
       if (startDown && !this.padStartDown[i]) this.pauseEdge = true;
       this.padStartDown[i] = startDown;
@@ -105,7 +104,7 @@ export class PlayerInputSystem {
       y += Number(this.cursors.down.isDown || this.wasd.S.isDown) - Number(this.cursors.up.isDown || this.wasd.W.isDown);
     }
 
-    const pad = this.scene.input.gamepad?.getPad(playerIndex);
+    const pad = this.scene.input.gamepad?.getPad(padIndexForPlayer(playerIndex, this.playerCount));
     if (pad?.connected) {
       x += Number(pad.right) - Number(pad.left);
       y += Number(pad.down) - Number(pad.up);
@@ -116,7 +115,7 @@ export class PlayerInputSystem {
     return { x: clamp(x, -1, 1), y: clamp(y, -1, 1) };
   }
 
-  /** Returns the latest touch/mouse aim point once, or null. Single-player only. */
+  /** Returns the latest touch/mouse aim point once, or null. Only player 1 aims this way. */
   consumeAim(playerIndex: number): Vec2 | null {
     if (playerIndex !== 0) return null;
     const target = this.aimTarget;
@@ -131,11 +130,10 @@ export class PlayerInputSystem {
   }
 
   isControllerConnected(playerIndex: number): boolean {
-    return this.scene.input.gamepad?.getPad(playerIndex)?.connected ?? false;
+    return this.scene.input.gamepad?.getPad(padIndexForPlayer(playerIndex, this.playerCount))?.connected ?? false;
   }
 
   destroy(): void {
-    if (!this.touchEnabled) return;
     this.scene.input.off(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
     this.scene.input.off(Phaser.Input.Events.POINTER_MOVE, this.onPointerMove, this);
   }

@@ -5,7 +5,7 @@ import { TitleBanner } from '../entities/TitleBanner';
 import { GAME_WIDTH, MAX_PLAYERS, PLAYER_COLORS, SceneKey, TextureKey } from '../config';
 import { COLOR, hex, labelStyle, plainStyle } from '../style';
 import { loadHighScore } from '../systems/score';
-import { isFireButtonDown } from '../systems/PlayerInputSystem';
+import { MenuPadInput } from '../systems/MenuPadInput';
 
 const INPUT_DELAY_MS = 700; // so a button held from the previous screen doesn't start a game
 const HOME_URL = '../../index.html'; // from games/<name>/index.html to the site homepage
@@ -23,6 +23,7 @@ export class MenuScene extends Phaser.Scene {
   private clouds: { image: Phaser.GameObjects.Image; speed: number }[] = [];
   private walkers: Bomb[] = [];
   private openedAt = 0;
+  private pad!: MenuPadInput;
 
   constructor() {
     super(SceneKey.Menu);
@@ -55,10 +56,10 @@ export class MenuScene extends Phaser.Scene {
       color: 0x90caf9,
       onClick: () => window.location.assign(HOME_URL),
     });
-    this.add.image(cx - 500, 130, TextureKey.Balloon).setScale(2.6).setTint(PLAYER_COLORS[0]).setRotation(-0.25);
-    this.add.image(cx + 500, 130, TextureKey.Balloon).setScale(2.6).setTint(PLAYER_COLORS[1]).setRotation(0.25);
-    this.add.image(cx + 470, 245, TextureKey.BombBody).setScale(1.5).setRotation(0.15);
-    this.add.image(cx - 470, 245, TextureKey.Balloon).setScale(2.2).setTint(PLAYER_COLORS[2]).setRotation(-0.15);
+    this.add.image(cx - 330, 345, TextureKey.Balloon).setScale(1.7).setTint(PLAYER_COLORS[0]).setRotation(-0.25);
+    this.add.image(cx + 330, 345, TextureKey.Balloon).setScale(1.7).setTint(PLAYER_COLORS[1]).setRotation(0.25);
+    this.add.image(cx - 260, 345, TextureKey.Balloon).setScale(1.3).setTint(PLAYER_COLORS[2]).setRotation(-0.15);
+    this.add.image(cx + 260, 345, TextureKey.BombBody).setScale(0.8).setRotation(0.15);
 
     this.add.text(cx, 345, 'How many players?', labelStyle(36)).setOrigin(0.5);
     for (let n = 1; n <= MAX_PLAYERS; n++) {
@@ -82,6 +83,8 @@ export class MenuScene extends Phaser.Scene {
       walker.setPosition(150 + i * 480, 678);
       this.walkers.push(walker);
     }
+
+    this.pad = new MenuPadInput(this);
   }
 
   update(_time: number, delta: number): void {
@@ -96,19 +99,8 @@ export class MenuScene extends Phaser.Scene {
       if (walker.x < -50) walker.x = GAME_WIDTH + 50;
     }
 
-    if (this.time.now - this.openedAt >= INPUT_DELAY_MS) this.pollControllers();
-  }
-
-  private pollControllers(): void {
-    let connected = 0;
-    let pressed = false;
-    for (let i = 0; i < MAX_PLAYERS; i++) {
-      const pad = this.input.gamepad?.getPad(i);
-      if (!pad?.connected) continue;
-      connected += 1;
-      if (isFireButtonDown(pad)) pressed = true;
-    }
-    if (pressed) this.startGame(connected);
+    const { confirm, connectedCount } = this.pad.poll();
+    if (confirm && this.time.now - this.openedAt >= INPUT_DELAY_MS) this.startGame(Math.max(1, connectedCount));
   }
 
   private drawBestScoreSign(x: number, y: number): void {
@@ -120,6 +112,6 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private startGame(players: number): void {
-    this.scene.start(SceneKey.Play, { players });
+    this.scene.start(SceneKey.Difficulty, { players });
   }
 }

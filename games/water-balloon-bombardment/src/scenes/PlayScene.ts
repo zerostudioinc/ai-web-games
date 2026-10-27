@@ -28,8 +28,10 @@ import { Splash } from '../entities/Splash';
 import { flightTimeMs, indicesInRadius, targetPlayerForLane } from '../systems/combat';
 import { clampToBounds, stepReticle } from '../systems/movement';
 import { PlayerInputSystem } from '../systems/PlayerInputSystem';
+import { MenuPadInput } from '../systems/MenuPadInput';
 import { POINTS_PER_BOMB, loadHighScore, recordScore } from '../systems/score';
-import { TOTAL_WAVES, WaveDirector, bombSpeed } from '../systems/waves';
+import { TOTAL_WAVES, WaveDirector } from '../systems/waves';
+import { bombSpeed, isDifficulty, type Difficulty } from '../systems/difficulty';
 
 const END_DELAY_MS = 1500;
 const EXPLOSION_COLOR = 0xff7043;
@@ -39,7 +41,9 @@ type Outcome = 'won' | 'lost';
 
 export class PlayScene extends Phaser.Scene {
   private playerCount = 1;
+  private difficulty: Difficulty = 'normal';
   private controls!: PlayerInputSystem;
+  private pauseNav!: MenuPadInput;
   private hud!: Hud;
   private pauseOverlay!: PauseOverlay;
   private director!: WaveDirector;
@@ -60,8 +64,9 @@ export class PlayScene extends Phaser.Scene {
     super(SceneKey.Play);
   }
 
-  init(data: { players?: number }): void {
+  init(data: { players?: number; difficulty?: Difficulty }): void {
     this.playerCount = Phaser.Math.Clamp(data.players ?? 1, 1, MAX_PLAYERS);
+    this.difficulty = isDifficulty(data.difficulty) ? data.difficulty : 'normal';
     this.catapults = [];
     this.reticles = [];
     this.bombs = [];
@@ -89,6 +94,12 @@ export class PlayScene extends Phaser.Scene {
       () => this.quitToMenu(),
     );
     this.controls = new PlayerInputSystem(this, this.playerCount);
+    this.pauseNav = new MenuPadInput(this);
+
+    const keyboard = this.input.keyboard;
+    keyboard?.on('keydown-UP', () => this.paused && this.pauseOverlay.move(-1));
+    keyboard?.on('keydown-DOWN', () => this.paused && this.pauseOverlay.move(1));
+    keyboard?.on('keydown-ENTER', () => this.paused && this.pauseOverlay.activateSelected());
     this.director = new WaveDirector(LANE_COUNT);
     this.startingHighScore = loadHighScore();
 
@@ -97,10 +108,14 @@ export class PlayScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.controls.poll();
+    const nav = this.pauseNav.poll(); // polled every frame so held buttons never read as new presses
 
     if (this.controls.pausePressed() && this.outcome === null) this.setPaused(!this.paused);
     if (this.paused) {
       this.controls.discard();
+      if (nav.up) this.pauseOverlay.move(-1);
+      if (nav.down) this.pauseOverlay.move(1);
+      if (nav.confirm) this.pauseOverlay.activateSelected();
       return;
     }
 
@@ -205,7 +220,7 @@ export class PlayScene extends Phaser.Scene {
 
     const update = this.director.update(dt, this.bombs.length);
     for (const lane of update.spawnLanes) {
-      this.bombs.push(new Bomb(this, lane, bombSpeed(this.director.wave)));
+      this.bombs.push(new Bomb(this, lane, bombSpeed(this.difficulty, this.director.wave)));
     }
     if (this.director.phase === 'victory') this.finish('won');
   }
@@ -226,6 +241,7 @@ export class PlayScene extends Phaser.Scene {
       newHighScore: this.score > this.startingHighScore,
       wave: Math.max(1, this.director.wave),
       players: this.playerCount,
+      difficulty: this.difficulty,
     });
   }
 
@@ -249,6 +265,7 @@ export class PlayScene extends Phaser.Scene {
     this.hud.setScore(this.score);
     this.hud.setHighScore(Math.max(this.startingHighScore, this.score));
     this.hud.setWave(Math.max(1, this.director.wave), TOTAL_WAVES);
+    this.hud.setBombsRemaining(this.director.bombsRemaining(this.bombs.length));
     this.hud.setBanner(this.director.phase === 'intermission' ? `Wave ${this.director.wave + 1}` : null);
 
     for (let i = 0; i < this.playerCount; i++) {
@@ -259,7 +276,7 @@ export class PlayScene extends Phaser.Scene {
   private statusLabel(player: number): string {
     if (this.catapults[player].isWrecked) return `P${player + 1}: out`;
     if (this.controls.isControllerConnected(player)) return `P${player + 1}: controller`;
-    if (player === 0) return this.playerCount === 1 ? 'P1: touch / keyboard / controller' : 'P1: keyboard / controller';
+    if (player === 0) return this.playerCount === 1 ? 'P1: touch / keyboard / controller' : 'P1: keyboard / mouse / touch';
     return `P${player + 1}: press a button`;
   }
 }

@@ -31,6 +31,7 @@ export const PLAYER_COLORS = [0x4fc3f7, 0xffb74d, 0x81c784, 0xba68c8] as const;
 export const SceneKey = {
   Boot: 'BootScene',
   Menu: 'MenuScene',
+  Difficulty: 'DifficultyScene',
   Play: 'PlayScene',
   Result: 'ResultScene',
 } as const;
