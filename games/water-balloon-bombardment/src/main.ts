@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import '@fontsource/lilita-one/400.css';
 import { GAME_HEIGHT, GAME_WIDTH } from './config';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';

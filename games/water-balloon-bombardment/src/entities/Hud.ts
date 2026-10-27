@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, PLAYER_COLORS } from '../config';
-
-const FONT = 'sans-serif';
-const css = (color: number): string => Phaser.Display.Color.IntegerToColor(color).rgba;
+import { GAME_HEIGHT, GAME_WIDTH, PLAYER_COLORS, TextureKey } from '../config';
+import { COLOR, hex, labelStyle } from '../style';
+import { Button } from './Button';
 
 export class Hud {
   private readonly scoreText: Phaser.GameObjects.Text;
@@ -12,32 +11,20 @@ export class Hud {
   private readonly statusTexts: Phaser.GameObjects.Text[] = [];
 
   constructor(scene: Phaser.Scene, playerCount: number, onPause: () => void) {
-    const style = { fontFamily: FONT, fontSize: '26px', color: '#e8f4f8' };
-    this.scoreText = scene.add.text(20, 8, '', style).setDepth(20);
-    this.highText = scene.add.text(260, 8, '', style).setDepth(20);
-    this.waveText = scene.add.text(GAME_WIDTH / 2 + 60, 8, '', style).setDepth(20);
+    scene.add.image(0, 0, TextureKey.HudBar).setOrigin(0).setDepth(19);
+
+    this.scoreText = scene.add.text(24, 4, '', labelStyle(30)).setDepth(20);
+    this.highText = scene.add.text(250, 4, '', labelStyle(30, hex(COLOR.gold))).setDepth(20);
+    this.waveText = scene.add.text(GAME_WIDTH / 2 + 90, 4, '', labelStyle(30)).setDepth(20);
 
     for (let i = 0; i < playerCount; i++) {
-      this.statusTexts.push(
-        scene.add.text(20 + i * 300, 48, '', { fontFamily: FONT, fontSize: '18px', color: css(PLAYER_COLORS[i]) }).setDepth(20),
-      );
+      this.statusTexts.push(scene.add.text(24 + i * 300, 48, '', labelStyle(20, hex(PLAYER_COLORS[i]))).setDepth(20));
     }
 
-    scene.add
-      .text(GAME_WIDTH - 20, 8, 'Pause', { fontFamily: FONT, fontSize: '24px', color: '#10222d', backgroundColor: '#b0d4e3', padding: { x: 12, y: 6 } })
-      .setOrigin(1, 0)
-      .setDepth(20)
-      .setInteractive({ useHandCursor: true })
-      .on(Phaser.Input.Events.POINTER_UP, onPause);
+    new Button(scene, GAME_WIDTH - 80, 38, { width: 120, height: 48, label: 'Pause', fontSize: 24, color: 0x90caf9, onClick: onPause }).setDepth(20);
 
     this.banner = scene.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, '', {
-        fontFamily: FONT,
-        fontSize: '72px',
-        color: '#ffffff',
-        stroke: '#10222d',
-        strokeThickness: 8,
-      })
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, '', { ...labelStyle(110), strokeThickness: 12 })
       .setOrigin(0.5)
       .setDepth(20)
       .setVisible(false);
@@ -48,7 +35,7 @@ export class Hud {
   }
 
   setHighScore(score: number): void {
-    this.highText.setText(`High: ${score}`);
+    this.highText.setText(`Best: ${score}`);
   }
 
   setWave(wave: number, total: number): void {

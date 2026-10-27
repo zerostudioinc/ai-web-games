@@ -1,33 +1,24 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
-
-const FONT = 'sans-serif';
+import { labelStyle } from '../style';
+import { Button } from './Button';
 
 export class PauseOverlay {
   private readonly container: Phaser.GameObjects.Container;
-  private readonly buttons: Phaser.GameObjects.Text[] = [];
+  private readonly buttons: Button[];
+  private readonly dim: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene, onResume: () => void, onQuit: () => void) {
     const cx = GAME_WIDTH / 2;
-    const dim = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.65).setOrigin(0);
-    const title = scene.add.text(cx, 220, 'Paused', { fontFamily: FONT, fontSize: '80px', color: '#ffffff' }).setOrigin(0.5);
-    const hint = scene.add
-      .text(cx, 540, 'Esc / P / controller Start to resume', { fontFamily: FONT, fontSize: '22px', color: '#b0d4e3' })
-      .setOrigin(0.5);
+    // Interactive so clicks cannot reach the HUD underneath.
+    this.dim = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.65).setOrigin(0).setInteractive();
+    const title = scene.add.text(cx, 200, 'PAUSED', labelStyle(110)).setOrigin(0.5);
+    const hint = scene.add.text(cx, 560, 'Esc / P / controller Start to resume', labelStyle(22)).setOrigin(0.5);
+    const resume = new Button(scene, cx, 350, { width: 380, height: 84, label: 'Resume', fontSize: 42, color: 0x81c784, onClick: onResume });
+    const quit = new Button(scene, cx, 460, { width: 380, height: 84, label: 'Quit to menu', fontSize: 38, color: 0xef9a9a, onClick: onQuit });
 
-    const makeButton = (y: number, label: string, onClick: () => void): Phaser.GameObjects.Text => {
-      const button = scene.add
-        .text(cx, y, label, { fontFamily: FONT, fontSize: '40px', color: '#10222d', backgroundColor: '#b0d4e3', padding: { x: 30, y: 12 } })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true })
-        .on(Phaser.Input.Events.POINTER_UP, onClick);
-      this.buttons.push(button);
-      return button;
-    };
-    const resume = makeButton(350, 'Resume', onResume);
-    const quit = makeButton(450, 'Quit to menu', onQuit);
-
-    this.container = scene.add.container(0, 0, [dim, title, hint, resume, quit]).setDepth(100);
+    this.buttons = [resume, quit];
+    this.container = scene.add.container(0, 0, [this.dim, title, hint, resume, quit]).setDepth(100);
     this.hide();
   }
 
@@ -41,8 +32,7 @@ export class PauseOverlay {
 
   private setShown(shown: boolean): void {
     this.container.setVisible(shown);
-    for (const button of this.buttons) {
-      if (button.input) button.input.enabled = shown;
-    }
+    if (this.dim.input) this.dim.input.enabled = shown;
+    for (const button of this.buttons) button.setEnabled(shown);
   }
 }

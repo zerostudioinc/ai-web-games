@@ -7,7 +7,6 @@ import {
   FIELD_TOP,
   GAME_WIDTH,
   LANE_COUNT,
-  LANE_HEIGHT,
   MAX_FLIGHT_MS,
   MAX_FRAME_MS,
   MAX_PLAYERS,
@@ -16,6 +15,7 @@ import {
   RETICLE_SPEED,
   SPLASH_RADIUS,
   SceneKey,
+  TextureKey,
   catapultY,
 } from '../config';
 import { Balloon } from '../entities/Balloon';
@@ -74,7 +74,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.drawLanes();
+    this.add.image(0, FIELD_TOP, TextureKey.Field).setOrigin(0);
 
     for (let i = 0; i < this.playerCount; i++) {
       const y = catapultY(i, this.playerCount);
@@ -259,17 +259,7 @@ export class PlayScene extends Phaser.Scene {
   private statusLabel(player: number): string {
     if (this.catapults[player].isWrecked) return `P${player + 1}: out`;
     if (this.controls.isControllerConnected(player)) return `P${player + 1}: controller`;
-    return player === 0 ? 'P1: keyboard / touch' : `P${player + 1}: press a controller button`;
-  }
-
-  private drawLanes(): void {
-    const g = this.add.graphics();
-    for (let lane = 0; lane < LANE_COUNT; lane++) {
-      g.fillStyle(lane % 2 === 0 ? 0x1c4a5e : 0x18404f).fillRect(0, FIELD_TOP + lane * LANE_HEIGHT, GAME_WIDTH, LANE_HEIGHT);
-    }
-    g.lineStyle(2, 0x0b1d2a);
-    for (let lane = 0; lane <= LANE_COUNT; lane++) {
-      g.lineBetween(0, FIELD_TOP + lane * LANE_HEIGHT, GAME_WIDTH, FIELD_TOP + lane * LANE_HEIGHT);
-    }
+    if (player === 0) return this.playerCount === 1 ? 'P1: touch / keyboard / controller' : 'P1: keyboard / controller';
+    return `P${player + 1}: press a button`;
   }
 }

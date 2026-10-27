@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BALLOON_ARC_HEIGHT, SPLASH_RADIUS } from '../config';
+import { BALLOON_ARC_HEIGHT, SPLASH_RADIUS, TextureKey } from '../config';
 import { balloonPosition } from '../systems/combat';
 import type { Vec2 } from '../systems/movement';
 
@@ -19,10 +19,7 @@ export class Balloon extends Phaser.GameObjects.Container {
     this.durationMs = durationMs;
     this.color = color;
 
-    const art = scene.make.graphics({}, false);
-    art.fillStyle(color).fillCircle(0, 0, 11);
-    art.fillStyle(0xffffff, 0.7).fillCircle(-4, -4, 3);
-    this.add(art);
+    this.add(new Phaser.GameObjects.Image(scene, 0, 0, TextureKey.Balloon).setTint(color));
 
     // Shows the splash area so players can lead moving bombs.
     this.marker = scene.add.circle(target.x, target.y, SPLASH_RADIUS, color, 0.12).setStrokeStyle(2, color, 0.6).setDepth(1);
@@ -37,6 +34,7 @@ export class Balloon extends Phaser.GameObjects.Container {
     const t = this.elapsedMs / this.durationMs;
     const position = balloonPosition(this.start, this.target, t, BALLOON_ARC_HEIGHT);
     this.setPosition(position.x, position.y);
+    this.rotation = Math.sin(this.elapsedMs * 0.012) * 0.35;
     return t >= 1;
   }
 

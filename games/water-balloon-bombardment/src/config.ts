@@ -35,6 +35,15 @@ export const SceneKey = {
   Result: 'ResultScene',
 } as const;
 
+export const TextureKey = {
+  Field: 'grass-field',
+  HudBar: 'hud-bar',
+  Cloud: 'cloud',
+  MenuBackground: 'menu-bg',
+  BombBody: 'bomb-body',
+  Balloon: 'balloon',
+} as const;
+
 export const laneCenterY = (lane: number): number => FIELD_TOP + (lane + 0.5) * LANE_HEIGHT;
 
 // A lone catapult is centred in the field; otherwise player N sits in lane N.

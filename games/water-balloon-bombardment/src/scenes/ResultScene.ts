@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, MAX_PLAYERS, SceneKey } from '../config';
+import { Button } from '../entities/Button';
+import { TitleBanner } from '../entities/TitleBanner';
+import { GAME_WIDTH, MAX_PLAYERS, SceneKey, TextureKey } from '../config';
+import { COLOR, hex, labelStyle, plainStyle } from '../style';
 import { isFireButtonDown } from '../systems/PlayerInputSystem';
 
-const FONT = 'sans-serif';
 const INPUT_DELAY_MS = 700; // so a fire button held at the end doesn't skip the screen
 
 interface ResultData {
@@ -16,6 +18,7 @@ interface ResultData {
 
 export class ResultScene extends Phaser.Scene {
   private result: ResultData = { won: false, score: 0, highScore: 0, newHighScore: false, wave: 1, players: 1 };
+  private title!: TitleBanner;
   private openedAt = 0;
 
   constructor() {
@@ -31,28 +34,33 @@ export class ResultScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     this.openedAt = this.time.now;
 
-    this.add
-      .text(cx, 150, won ? 'Victory!' : 'Game Over', { fontFamily: FONT, fontSize: '80px', color: won ? '#81c784' : '#ef5350' })
-      .setOrigin(0.5);
-    this.add.text(cx, 270, `Score: ${score}`, { fontFamily: FONT, fontSize: '44px', color: '#e8f4f8' }).setOrigin(0.5);
-    this.add.text(cx, 330, `High score: ${highScore}`, { fontFamily: FONT, fontSize: '32px', color: '#b0d4e3' }).setOrigin(0.5);
-    if (newHighScore) {
-      this.add.text(cx, 380, 'New high score!', { fontFamily: FONT, fontSize: '32px', color: '#ffd54f' }).setOrigin(0.5);
-    }
-    this.add.text(cx, 430, `Reached wave ${wave} of 10`, { fontFamily: FONT, fontSize: '26px', color: '#b0d4e3' }).setOrigin(0.5);
+    this.add.image(0, 0, TextureKey.MenuBackground).setOrigin(0);
+    this.title = new TitleBanner(this, cx, [
+      won
+        ? { text: 'VICTORY!', y: 130, size: 124, top: '#fff59d', bottom: '#ffb300' }
+        : { text: 'GAME OVER', y: 130, size: 124, top: '#ffcdd2', bottom: '#ef5350' },
+    ]);
 
-    this.button(cx - 150, 530, 'Play again', () => this.playAgain());
-    this.button(cx + 150, 530, 'Menu', () => this.scene.start(SceneKey.Menu));
+    const panel = this.add.graphics();
+    panel.fillStyle(COLOR.ink, 0.35).fillRoundedRect(cx - 260, 248, 520, 230, 22);
+    panel.fillStyle(COLOR.cream).fillRoundedRect(cx - 260, 240, 520, 230, 22);
+    panel.lineStyle(4, COLOR.ink).strokeRoundedRect(cx - 260, 240, 520, 230, 22);
+    const ink = hex(COLOR.ink);
+    this.add.text(cx, 290, `Score: ${score}`, plainStyle(56, ink)).setOrigin(0.5);
+    this.add.text(cx, 355, `Best: ${highScore}`, plainStyle(36, ink)).setOrigin(0.5);
+    if (newHighScore) this.add.text(cx, 405, 'New high score!', plainStyle(34, '#e65100')).setOrigin(0.5);
+    this.add.text(cx, newHighScore ? 445 : 420, `Reached wave ${wave} of 10`, plainStyle(26, ink)).setOrigin(0.5);
 
-    this.add
-      .text(cx, 640, 'Enter / controller button to play again', { fontFamily: FONT, fontSize: '22px', color: '#b0d4e3' })
-      .setOrigin(0.5);
+    new Button(this, cx - 170, 560, { width: 300, height: 84, label: 'Play again', fontSize: 38, color: 0x81c784, onClick: () => this.playAgain() });
+    new Button(this, cx + 170, 560, { width: 300, height: 84, label: 'Menu', fontSize: 38, color: 0x90caf9, onClick: () => this.scene.start(SceneKey.Menu) });
+    this.add.text(cx, 645, 'Enter / controller button to play again', labelStyle(20)).setOrigin(0.5);
 
     this.input.keyboard?.on('keydown-ENTER', () => this.acceptingInput() && this.playAgain());
     this.input.keyboard?.on('keydown-SPACE', () => this.acceptingInput() && this.playAgain());
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
+    this.title.update(delta);
     if (!this.acceptingInput()) return;
     for (let i = 0; i < MAX_PLAYERS; i++) {
       const pad = this.input.gamepad?.getPad(i);
@@ -69,13 +77,5 @@ export class ResultScene extends Phaser.Scene {
 
   private playAgain(): void {
     this.scene.start(SceneKey.Play, { players: this.result.players });
-  }
-
-  private button(x: number, y: number, label: string, onClick: () => void): void {
-    this.add
-      .text(x, y, label, { fontFamily: FONT, fontSize: '40px', color: '#10222d', backgroundColor: '#b0d4e3', padding: { x: 30, y: 12 } })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on(Phaser.Input.Events.POINTER_UP, onClick);
   }
 }

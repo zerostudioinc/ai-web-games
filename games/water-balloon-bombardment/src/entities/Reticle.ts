@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { labelStyle } from '../style';
 
 export class Reticle extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number, color: number, label: string) {
@@ -10,9 +11,9 @@ export class Reticle extends Phaser.GameObjects.Container {
     g.lineBetween(0, -28, 0, -8).lineBetween(0, 8, 0, 28);
     const text = scene.make.text({
       x: 0,
-      y: -42,
+      y: -44,
       text: label,
-      style: { fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff' },
+      style: labelStyle(20),
     }, false).setOrigin(0.5);
     this.add([g, text]);
 
