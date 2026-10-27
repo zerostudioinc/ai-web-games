@@ -1,14 +1,19 @@
+/**
+ * Tests for the lane layout helpers: lane counts, which lane each player uses and where catapults stand.
+ */
 import { describe, expect, it } from 'vitest';
 import { FIELD_HEIGHT, FIELD_TOP, LANE_HEIGHT, catapultY, laneCenterY, laneCountFor, playerLane } from './config';
 
-const fieldCenter = FIELD_TOP + FIELD_HEIGHT / 2;
+const fieldCenter = FIELD_TOP + FIELD_HEIGHT / 2; // y of the middle of the playing field
 
+// Odd player counts use 3 lanes and even counts use 4.
 describe('laneCountFor', () => {
   it('uses 3 lanes for 1 and 3 players and 4 lanes for 2 and 4', () => {
     expect([1, 2, 3, 4].map(laneCountFor)).toEqual([3, 4, 3, 4]);
   });
 });
 
+// Lane numbers here are 0-based, so "lane 2" in the test title is index 1.
 describe('playerLane', () => {
   it('puts 1 player in lane 2, 2 players in lanes 2-3, 3 in lanes 1-3 and 4 in lanes 1-4', () => {
     expect([0].map((p) => playerLane(p, 1))).toEqual([1]);
@@ -18,9 +23,11 @@ describe('playerLane', () => {
   });
 });
 
+// Lanes are centred on the field.
 describe('laneCenterY', () => {
   it('centres the lanes on the field with equal empty grass above and below', () => {
     for (const count of [3, 4]) {
+      // Gap between the field top and the first lane, versus the last lane and the field bottom.
       const first = laneCenterY(0, count) - LANE_HEIGHT / 2 - FIELD_TOP;
       const last = FIELD_TOP + FIELD_HEIGHT - (laneCenterY(count - 1, count) + LANE_HEIGHT / 2);
       expect(first).toBe(last);
@@ -32,6 +39,7 @@ describe('laneCenterY', () => {
   });
 });
 
+// Each catapult stands at the centre of its own lane.
 describe('catapultY', () => {
   it('centres a lone catapult in the field', () => {
     expect(catapultY(0, 1)).toBe(fieldCenter);
@@ -47,6 +55,7 @@ describe('catapultY', () => {
   it('is symmetric about the field centre for every player count', () => {
     for (let count = 1; count <= 4; count++) {
       const ys = Array.from({ length: count }, (_, i) => catapultY(i, count));
+      // The average y of all catapults must sit on the field's centre line.
       expect(ys.reduce((sum, y) => sum + y, 0) / count).toBeCloseTo(fieldCenter);
     }
   });

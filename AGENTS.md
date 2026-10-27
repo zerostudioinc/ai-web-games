@@ -25,6 +25,8 @@ Simple 2D browser games built with Vite, TypeScript (strict) and Phaser 3. See [
 - One Phaser `Scene` per file; the game config lives in `main.ts`.
 - Prefer generated or primitive graphics (shapes, graphics objects, generated textures) over binary assets.
 - Movement and timers must use the `delta` passed to `update`, not frame counts.
+- Write code with proper comments in them so developers can easily review the written source code.
+- Make sure all function has a header comment describing what it does, and what each parameter is.
 
 ## Pitfalls
 

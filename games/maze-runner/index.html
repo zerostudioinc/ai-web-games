@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Fixed scale and no pinch-zoom: the game fills the screen and handles touch input itself. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Maze Runner</title>
+    <!-- Empty icon, so the browser does not request a missing /favicon.ico. -->
+    <link rel="icon" href="data:," />
+    <style>
+      /* The page is exactly the window: dark backdrop behind the letterboxed canvas, and no scrolling. */
+      html, body { margin: 0; height: 100%; background: #0b1d2a; overflow: hidden; }
+      /* Mount point of the Phaser canvas; touch-action none stops the browser panning or zooming on touch. */
+      #game { width: 100vw; height: 100vh; touch-action: none; }
+      /* Full-screen message that covers the game when the device is held in portrait; hidden otherwise. */
+      #rotate-hint {
+        display: none; position: fixed; inset: 0; z-index: 10;
+        align-items: center; justify-content: center; text-align: center;
+        background: #0b1d2a; color: #e8f4f8; font: 24px sans-serif;
+      }
+      /* Reveal the rotate hint in portrait orientation only. */
+      @media (orientation: portrait) { #rotate-hint { display: flex; } }
+    </style>
+  </head>
+  <body>
+    <!-- Phaser creates its canvas inside this element (see `parent: 'game'` in src/main.ts). -->
+    <div id="game"></div>
+    <!-- Covers the game in portrait orientation (see the CSS above). -->
+    <div id="rotate-hint">Rotate your device to landscape</div>
+    <!-- Game entry point; Vite bundles it. -->
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
