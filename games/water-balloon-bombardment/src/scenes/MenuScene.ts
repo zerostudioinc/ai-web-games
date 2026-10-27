@@ -8,6 +8,7 @@ import { loadHighScore } from '../systems/score';
 import { isFireButtonDown } from '../systems/PlayerInputSystem';
 
 const INPUT_DELAY_MS = 700; // so a button held from the previous screen doesn't start a game
+const HOME_URL = '../../index.html'; // from games/<name>/index.html to the site homepage
 
 const KEY_NAMES = ['ONE', 'TWO', 'THREE', 'FOUR'] as const;
 const CLOUDS = [
@@ -45,6 +46,15 @@ export class MenuScene extends Phaser.Scene {
       { text: 'WATER BALLOON', y: 120, size: 92, top: '#ffffff', bottom: '#81d4fa' },
       { text: 'BOMBARDMENT', y: 235, size: 118, top: '#fff59d', bottom: '#ff7043' },
     ]);
+
+    new Button(this, GAME_WIDTH - 76, 39, {
+      width: 112,
+      height: 42,
+      label: 'Home',
+      fontSize: 22,
+      color: 0x90caf9,
+      onClick: () => window.location.assign(HOME_URL),
+    });
     this.add.image(cx - 500, 130, TextureKey.Balloon).setScale(2.6).setTint(PLAYER_COLORS[0]).setRotation(-0.25);
     this.add.image(cx + 500, 130, TextureKey.Balloon).setScale(2.6).setTint(PLAYER_COLORS[1]).setRotation(0.25);
     this.add.image(cx + 470, 245, TextureKey.BombBody).setScale(1.5).setRotation(0.15);

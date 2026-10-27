@@ -13,6 +13,7 @@ Requirements:
 - Prevent player from being able to fire water balloon in quick sucession, add a reload delay for each shot to make it more difficult to prevent buttom spamming.
 - The catapult will have a reload animation to indicate when it is ready to fire again.
 - Score, high score in localStorage, pause screen. Players will get 1 point for every bomb they destroy.
+- Game menu should have a return to home page button on the top right corner.
 - Clean modular structure: src/scenes, src/entities, src/systems, src/assets.
 - Include npm scripts for dev, build, test, and preview.
 
