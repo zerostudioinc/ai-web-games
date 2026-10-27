@@ -50,6 +50,13 @@ export class PlayerInputSystem {
       scene.input.on(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
       scene.input.on(Phaser.Input.Events.POINTER_MOVE, this.onPointerMove, this);
     }
+
+    // Buttons already held when the scene starts must not count as a fresh press.
+    for (let i = 0; i < MAX_PLAYERS; i++) {
+      const pad = scene.input.gamepad?.getPad(i);
+      this.padFireDown[i] = !!pad?.connected && isFireButtonDown(pad);
+      this.padStartDown[i] = !!pad?.connected && !!pad.buttons[START_BUTTON]?.pressed;
+    }
   }
 
   /** Latches this frame's fire / pause presses. */
@@ -117,9 +124,10 @@ export class PlayerInputSystem {
     return target;
   }
 
-  /** Drops any pending aim, e.g. a tap that landed on a pause-menu button. */
+  /** Drops any pending aim and tap-to-fire, e.g. a tap that landed on a pause-menu button. */
   discard(): void {
     this.aimTarget = null;
+    this.touchFire = false;
   }
 
   isControllerConnected(playerIndex: number): boolean {

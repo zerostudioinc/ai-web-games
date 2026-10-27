@@ -118,7 +118,7 @@ export class PlayScene extends Phaser.Scene {
     this.updateBombs(dt);
     this.updateSplashes(dt);
     this.updateWaves(dt);
-    this.refreshHud();
+    if (this.outcome === null) this.refreshHud();
   }
 
   private updatePlayers(dt: number): void {
@@ -237,8 +237,12 @@ export class PlayScene extends Phaser.Scene {
   private setPaused(paused: boolean): void {
     if (this.outcome !== null) return;
     this.paused = paused;
-    if (paused) this.pauseOverlay.show();
-    else this.pauseOverlay.hide();
+    if (paused) {
+      this.pauseOverlay.show();
+    } else {
+      this.pauseOverlay.hide();
+      this.controls.discard(); // a tap on Resume must not aim or fire
+    }
   }
 
   private refreshHud(): void {
