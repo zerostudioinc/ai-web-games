@@ -17,8 +17,8 @@ Simple 2D browser games built with Vite, TypeScript (strict) and Phaser 3. See [
 - A single Vite project at the repo root; every `games/*/index.html` is auto-registered as a build page. Also list new games in the root [index.html](index.html).
 - Games never import from each other. Code used by several games goes in `shared/`.
 - Each game's assets live in its own `src/assets/` and are imported, so Vite bundles them.
-- Use the `add-game` skill to scaffold a new game. Example: [games/water-balloon-bombardment](games/water-balloon-bombardment).
-- Each game's overview and requirements live in `games/<kebab-name>.md` (e.g. [water-balloon-bombardment.md](games/water-balloon-bombardment.md)); check it before changing gameplay.
+- Use the `add-game` skill to scaffold a new game. Example: [games/balloon-catapult](games/balloon-catapult).
+- Each game's overview and requirements live in `games/<kebab-name>.md` (e.g. [balloon-catapult.md](games/balloon-catapult.md)); check it before changing gameplay.
 
 ## Conventions
 

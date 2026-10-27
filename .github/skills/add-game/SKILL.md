@@ -19,7 +19,7 @@ Follow the layout and conventions in [AGENTS.md](../../../AGENTS.md).
 8. Run `npm run typecheck`, `npm run test` and `npm run build`, and fix any errors.
 9. Run the `game-reviewer` agent as a subagent on `games/<name>/`, passing the game name and its requirements file. Fix every high and medium finding, then re-run step 8. Report any low findings you leave unfixed.
 
-Use [games/water-balloon-bombardment](../../../games/water-balloon-bombardment) as the reference layout.
+Use [games/balloon-catapult](../../../games/balloon-catapult) as the reference layout.
 
 ## Checks
 
