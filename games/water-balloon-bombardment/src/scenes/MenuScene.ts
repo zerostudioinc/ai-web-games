@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH, MAX_PLAYERS, PLAYER_COLORS, SceneKey } from '../config';
+import { loadHighScore } from '../systems/score';
 
 const FONT = 'sans-serif';
 const KEY_NAMES = ['ONE', 'TWO', 'THREE', 'FOUR'] as const;
@@ -14,11 +15,12 @@ export class MenuScene extends Phaser.Scene {
 
     this.add.text(cx, 130, 'Water Balloon Bombardment', { fontFamily: FONT, fontSize: '64px', color: '#e8f4f8' }).setOrigin(0.5);
     this.add.text(cx, 230, 'How many players?', { fontFamily: FONT, fontSize: '32px', color: '#b0d4e3' }).setOrigin(0.5);
+    this.add.text(cx, 290, `High score: ${loadHighScore()}`, { fontFamily: FONT, fontSize: '24px', color: '#ffd54f' }).setOrigin(0.5);
 
     for (let n = 1; n <= MAX_PLAYERS; n++) {
       const color = Phaser.Display.Color.IntegerToColor(PLAYER_COLORS[n - 1]).rgba;
       this.add
-        .text(cx - 300 + (n - 1) * 200, 340, `${n}`, {
+        .text(cx - 300 + (n - 1) * 200, 400, `${n}`, {
           fontFamily: FONT,
           fontSize: '72px',
           color: '#10222d',

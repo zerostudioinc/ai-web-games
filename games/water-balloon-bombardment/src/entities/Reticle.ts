@@ -19,4 +19,9 @@ export class Reticle extends Phaser.GameObjects.Container {
     this.setDepth(10);
     scene.add.existing(this);
   }
+
+  /** Dimmed while the catapult is reloading. */
+  setReady(ready: boolean): void {
+    this.setAlpha(ready ? 1 : 0.45);
+  }
 }

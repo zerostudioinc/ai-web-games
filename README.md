@@ -1,4 +1,4 @@
-# Simple-Games
+# Web Games
 This repo contains AI assisted 2D web based games. They are 2D browser-based games implemented using Vite, TypeScript, and Phaser 3.
 
 ## Water Balloon Bombardment
