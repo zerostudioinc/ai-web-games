@@ -1,6 +1,6 @@
 export const POINTS_PER_BOMB = 1;
 
-export const HIGH_SCORE_KEY = 'water-balloon-bombardment:high-score';
+export const HIGH_SCORE_KEY = 'balloon-catapult:high-score';
 
 export interface ScoreStorage {
   getItem(key: string): string | null;

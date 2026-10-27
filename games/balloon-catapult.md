@@ -1,6 +1,6 @@
-## Water Balloon Bombardment
+## Balloon Catapult
 ### Instruction
-Create a browser-based 2D game using Vite, TypeScript, and Phaser 3. The name of the game is Water Balloon Bombardment.
+Create a browser-based 2D game using Vite, TypeScript, and Phaser 3. The name of the game is Balloon Catapult.
 
 Requirements:
 - Landscape support.

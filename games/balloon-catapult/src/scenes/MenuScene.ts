@@ -44,8 +44,8 @@ export class MenuScene extends Phaser.Scene {
     }
 
     this.title = new TitleBanner(this, cx, [
-      { text: 'WATER BALLOON', y: 120, size: 92, top: '#ffffff', bottom: '#81d4fa' },
-      { text: 'BOMBARDMENT', y: 235, size: 118, top: '#fff59d', bottom: '#ff7043' },
+      { text: 'BALLOON', y: 125, size: 104, top: '#ffffff', bottom: '#81d4fa' },
+      { text: 'CATAPULT', y: 245, size: 128, top: '#fff59d', bottom: '#ff7043' },
     ]);
 
     new Button(this, GAME_WIDTH - 76, 39, {
