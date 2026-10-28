@@ -2,6 +2,7 @@
  * Balloon Catapult's shared constants (screen size, field layout, tuning, scene and texture keys)
  * and the helpers that lay out lanes and catapults.
  */
+import { copyrightLabel } from '../../../shared/copyright';
 import { formatVersion } from '../../../shared/version';
 import type { Difficulty } from './systems/difficulty';
 import type { Bounds } from './systems/movement';
@@ -14,6 +15,8 @@ export const GAME_HEIGHT = 720;
 export const GAME_ID = 'balloon-catapult';
 /** Version label such as "v1.1", from the `Version:` line of games/balloon-catapult.md; empty when the file has none. */
 export const VERSION_LABEL = formatVersion(__GAME_VERSIONS__[GAME_ID]);
+/** Copyright notice such as "© 2026 Zero Studio Inc", with the current year; drawn at the bottom centre of the main menu. */
+export const COPYRIGHT_LABEL = copyrightLabel();
 
 /** Most players that can share one game (one catapult each). */
 export const MAX_PLAYERS = 4;

@@ -7,9 +7,13 @@
     <!-- Shown by search engines and link previews. -->
     <meta name="description" content="Simple 2D browser games built with Vite, TypeScript and Phaser 3." />
     <title>Web Games</title>
-    <!-- Bundles the display font (Lilita One) used for the title, card headings and buttons. -->
+    <!-- Bundles the display font (Lilita One) used for the title, card headings and buttons, and fills in the copyright notice. -->
     <script type="module">
       import '@fontsource/lilita-one/400.css';
+      import { copyrightLabel } from './shared/copyright';
+
+      // The year is the current one; module scripts run once the page is parsed, so the footer element already exists.
+      document.getElementById('copyright').textContent = copyrightLabel();
     </script>
     <style>
       /* Shared design tokens: outline/text ink, card cream, gold, and the display font stack. */
@@ -414,7 +418,7 @@
         opacity: 0.5;
       }
 
-      /* Credit line fixed over the grass, with the same ink outline trick as the tagline. */
+      /* Footer fixed over the grass: the credit line and the copyright notice, with the same ink outline trick as the tagline. */
       footer {
         position: fixed;
         bottom: 12px;
@@ -427,6 +431,9 @@
         color: var(--cream);
         text-shadow: 0 1px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 -1px 0 var(--ink);
       }
+      footer p { margin: 0; }
+      /* The copyright notice is the bottom line: tiny and not bold. */
+      .copyright { margin-top: 2px; font-size: 0.7rem; font-weight: 400; }
 
       /* Respect the "reduce motion" setting: switch off every animation and transition, and park the clouds in view. */
       @media (prefers-reduced-motion: reduce) {
@@ -501,7 +508,10 @@
 
     <!-- Grass strip fixed to the bottom of the window, drawn over the cards (see .ground). -->
     <div class="ground" aria-hidden="true"></div>
-    <!-- Credit line, fixed over the grass. -->
-    <footer>Built with Vite, TypeScript and Phaser 3</footer>
+    <!-- Credit line and copyright notice, fixed over the grass; the script in the head fills in the notice. -->
+    <footer>
+      <p>Built with Vite, TypeScript and Phaser 3</p>
+      <p class="copyright" id="copyright"></p>
+    </footer>
   </body>
 </html>

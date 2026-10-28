@@ -1,6 +1,7 @@
 /**
  * Maze Runner's shared constants: screen size, play-area layout, timings, and the scene and texture keys.
  */
+import { copyrightLabel } from '../../../shared/copyright';
 import { formatVersion } from '../../../shared/version';
 import type { Difficulty } from './systems/difficulty';
 import type { ThemeId } from './systems/themes';
@@ -13,6 +14,8 @@ export const GAME_HEIGHT = 720;
 export const GAME_ID = 'maze-runner';
 /** Version label such as "v1.1", from the `Version:` line of games/maze-runner.md; empty when the file has none. */
 export const VERSION_LABEL = formatVersion(__GAME_VERSIONS__[GAME_ID]);
+/** Copyright notice such as "© 2026 Zero Studio Inc", with the current year; drawn at the bottom centre of the main menu. */
+export const COPYRIGHT_LABEL = copyrightLabel();
 
 /** Height of the status bar along the top of the play screen, in px. */
 export const HUD_HEIGHT = 64;

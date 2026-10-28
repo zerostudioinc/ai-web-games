@@ -1,13 +1,13 @@
 /**
  * Main menu: the title, a choice of one player or two players versus, a card per difficulty showing its best score,
- * corner buttons for High Scores and Home, and the game's version in the bottom-right corner.
+ * corner buttons for High Scores and Home, the game's version in the bottom-right corner and a copyright notice at the bottom centre.
  */
 import Phaser from 'phaser';
 import { IDLE_FRAME, runnerFrameKey, runnerWalkKey } from '../assets/runnerArt';
 import { Button } from '../entities/Button';
 import { DifficultyCard } from '../entities/DifficultyCard';
 import { TitleBanner } from '../entities/TitleBanner';
-import { CORNER_BUTTON, GAME_HEIGHT, GAME_WIDTH, MAX_FRAME_MS, SceneKey, TextureKey, VERSION_LABEL } from '../config';
+import { COPYRIGHT_LABEL, CORNER_BUTTON, GAME_HEIGHT, GAME_WIDTH, MAX_FRAME_MS, SceneKey, TextureKey, VERSION_LABEL } from '../config';
 import { labelStyle } from '../style';
 import { DIFFICULTIES, type Difficulty } from '../systems/difficulty';
 import { bestScore } from '../systems/highScores';
@@ -19,6 +19,7 @@ import { startRun, type PlayerCount } from '../systems/run';
 const INPUT_DELAY_MS = 600; // ms after the menu opens during which a game start or High Scores is ignored, so a key or button held from the previous screen cannot trigger them
 const HOME_URL = '../../index.html'; // from games/<name>/index.html to the site homepage; the Home button goes there
 const VERSION_FONT_SIZE = 16; // px; small, so the version label stays unobtrusive
+const COPYRIGHT_FONT_SIZE = 14; // px; tiny, so the copyright notice stays unobtrusive
 const CARD_SPACING = 304; // distance between the centres of neighbouring difficulty cards, px
 const CARD_Y = 475; // centre y of the difficulty cards, px; keeps a selected card's ring clear of the player-count buttons above and the key hint below
 const TAGLINE_Y = 238; // centre y of the one-line goal under the title, px
@@ -74,7 +75,7 @@ export class MenuScene extends Phaser.Scene {
     this.clockMs = 0;
   }
 
-  /** Builds the backdrop, sparks, title, player-count buttons, difficulty cards, corner buttons, key hints, version and jogging runner, then starts listening for input. */
+  /** Builds the backdrop, sparks, title, player-count buttons, difficulty cards, corner buttons, key hints, version, copyright notice and jogging runner, then starts listening for input. */
   create(): void {
     const cx = GAME_WIDTH / 2; // x of the screen's centre line, px
     // Full-screen backdrop, shared with the high-score and result screens.
@@ -145,6 +146,8 @@ export class MenuScene extends Phaser.Scene {
     if (VERSION_LABEL) {
       this.add.text(GAME_WIDTH - margin, GAME_HEIGHT - margin, VERSION_LABEL, labelStyle(VERSION_FONT_SIZE)).setOrigin(1, 1).setDepth(10);
     }
+    // Tiny copyright notice at the bottom centre, level with the version label.
+    this.add.text(cx, GAME_HEIGHT - margin, COPYRIGHT_LABEL, labelStyle(COPYRIGHT_FONT_SIZE)).setOrigin(0.5, 1).setDepth(10);
 
     // Controls hint above the running track.
     this.add.text(cx, 630, `Up-Down: players  |  Left-Right: difficulty  |  Enter or 1-${DIFFICULTIES.length}: start  |  H: high scores  |  Esc or P: pause`, labelStyle(18)).setOrigin(0.5);

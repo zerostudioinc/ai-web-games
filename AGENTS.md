@@ -30,6 +30,8 @@ Simple 2D browser games built with Vite, TypeScript (strict) and Phaser 3. See [
 - The game version is store in each of the game overview and requirements markdown file, it will be the game version number source of truth. When new requirements is added, the version number will be updated and will need to be updated to the game.
   - The build reads the `Version:` line (line 2, under the title) of `games/<kebab-name>.md` (`vite.config.ts`, parsed by `shared/version.ts`), so a game follows it automatically; never hard-code a version. Game code reads it as `__GAME_VERSIONS__['<kebab-name>']`, and HTML pages use a `%GAME_VERSION:<kebab-name>%` placeholder. Restart `npm run dev` after changing a version, because it is read once when the config loads.
   - Every game's main menu should show its version in small text in the bottom-right corner: define `VERSION_LABEL` in the game's `src/config.ts` and draw it in its `MenuScene`. [games/balloon-catapult](games/balloon-catapult) is the reference. Each game's card on the root [index.html](index.html) shows its version too.
+- Add a tiny copyright label on the bottom center of each game menu and the home screen. Make the year dynamic based on current year.
+  - © 2026 Zero Studio Inc
 
 ## Pitfalls
 
