@@ -12,8 +12,6 @@ import { stepCell, type Cell, type Direction, type Maze, type MazeExit } from '.
 import type { Random } from '../systems/rng';
 import type { ThemePalette, WallStyle } from '../systems/themes';
 
-const TEXTURE_KEY = 'maze-layer'; // key of the texture holding the baked floor and walls; it is replaced for every level
-
 /** Rotation, in degrees clockwise on screen, that turns the portal's right-pointing arrow toward the way out. */
 const PORTAL_ANGLE: Record<Direction, number> = { right: 0, down: 90, left: 180, up: 270 };
 
@@ -223,12 +221,43 @@ function drawPanel(g: Gfx, rect: WallRect, palette: ThemePalette): void {
   g.fillStyle(palette.wallLight).fillCircle(x1, y1, t * 0.16).fillCircle(x2, y2, t * 0.16);
 }
 
+/**
+ * Mountain: a dry-stone wall of rounded boulders, some capped with snow on their lit side.
+ *
+ * @param g - Graphics object to draw on.
+ * @param rect - The wall run to paint.
+ * @param palette - Theme colours: `wall` for the stones, `wallLight` for the snow, `wallShadow` for the outlines.
+ * @param random - Random source for each boulder's size, tone and sideways wobble, and for which ones carry snow.
+ */
+function drawBoulders(g: Gfx, rect: WallRect, palette: ThemePalette, random: Random): void {
+  const t = thickness(rect);
+  const length = longSide(rect);
+  // A darker rounded base, so no gaps show between the boulders.
+  g.fillStyle(shade(palette.wall, 0.8)).fillRoundedRect(rect.x, rect.y, rect.w, rect.h, t / 2);
+  // Roughly one boulder per wall thickness along the run, never closer than about 4 px.
+  const boulders = Math.max(1, Math.floor(length / Math.max(t * 0.9, 4)));
+  for (let i = 0; i <= boulders; i++) {
+    // Boulder centres run from half a wall in from one end to half a wall in from the other.
+    const along = t / 2 + ((length - t) * i) / boulders;
+    const wobble = (random() - 0.5) * t * 0.25; // pushes some boulders off the centre line
+    const cx = rect.horizontal ? rect.x + along : rect.x + t / 2 + wobble;
+    const cy = rect.horizontal ? rect.y + t / 2 + wobble : rect.y + along;
+    const radius = t * (0.46 + random() * 0.12); // 46% to 58% of the wall thickness
+    // The stone is the wall colour or a lighter tone, with a thin dark outline.
+    g.fillStyle(random() < 0.5 ? palette.wall : shade(palette.wall, 1.12)).fillCircle(cx, cy, radius);
+    g.lineStyle(1, palette.wallShadow, 0.55).strokeCircle(cx, cy, radius);
+    // Half of the boulders get a cap of snow on their upper-left side, the lit one.
+    if (random() < 0.5) g.fillStyle(palette.wallLight, 0.9).fillEllipse(cx - radius * 0.2, cy - radius * 0.45, radius * 1.1, radius * 0.55);
+  }
+}
+
 /** The drawing routine for each wall style. */
 const WALL_DRAWERS: Record<WallStyle, WallDrawer> = {
   hedge: drawHedge,
   sandstone: drawSandstone,
   brick: drawBrick,
   panel: drawPanel,
+  rock: drawBoulders,
 };
 
 /**
@@ -305,7 +334,7 @@ function drawMaze(g: Gfx, maze: Maze, layout: MazeLayout, palette: ThemePalette,
 
 /**
  * On-screen look of one maze: the baked floor-and-wall layer, the pulsing exit portal and the slabs that mark sealed passages.
- * Create one per level, call `update` every frame and `destroy` when the level ends.
+ * Create one per maze, call `update` every frame and `destroy` when the level ends.
  */
 export class MazeView {
   private readonly layer: Phaser.GameObjects.Image; // the baked floor and walls
@@ -322,6 +351,7 @@ export class MazeView {
    * @param layout - Cell size, wall thickness and screen position of the grid.
    * @param palette - Theme colours and wall style.
    * @param random - Random source for the decoration; the same sequence paints the same picture.
+   * @param textureKey - Key the baked floor and walls are stored under; every maze on screen needs its own, and a texture already under it is replaced.
    */
   constructor(
     private readonly scene: Phaser.Scene,
@@ -329,6 +359,7 @@ export class MazeView {
     private readonly layout: MazeLayout,
     palette: ThemePalette,
     random: Random,
+    private readonly textureKey: string,
   ) {
     // Room around the grid for wall overhang, shadows and the gate posts: the wall thickness plus 3 px.
     const pad = Math.ceil(layout.wallThickness) + 3;
@@ -338,16 +369,16 @@ export class MazeView {
 
     // The floor and walls are baked into one texture: redrawing thousands of shapes every frame would be wasteful.
     // Remove any texture left from an earlier level, so this one starts blank and at the right size.
-    if (scene.textures.exists(TEXTURE_KEY)) scene.textures.remove(TEXTURE_KEY);
+    if (scene.textures.exists(textureKey)) scene.textures.remove(textureKey);
     // `false` keeps the graphics object out of the scene; it is only a drawing surface.
     const g = scene.make.graphics({}, false);
     drawMaze(g, maze, layout, palette, pad, random);
     // Render the shapes into the texture, then discard the graphics object.
-    g.generateTexture(TEXTURE_KEY, width, height);
+    g.generateTexture(textureKey, width, height);
     g.destroy();
     // The image starts `pad` px up and left of the grid, so the grid lands exactly on `layout.bounds`.
     // Depth 5: above the theme background, below the slabs (6), the portal (7) and the runner (11).
-    this.layer = scene.add.image(layout.bounds.x - pad, layout.bounds.y - pad, TEXTURE_KEY).setOrigin(0).setDepth(5);
+    this.layer = scene.add.image(layout.bounds.x - pad, layout.bounds.y - pad, textureKey).setOrigin(0).setDepth(5);
 
     // The portal sits in the spare cell just outside the exit gap.
     const outside = cellCenter(layout, stepCell(maze.exit.cell, maze.exit.side));
@@ -444,6 +475,6 @@ export class MazeView {
     this.layer.destroy();
     this.marker.destroy();
     for (const slab of this.slabs) slab.container.destroy();
-    this.scene.textures.remove(TEXTURE_KEY);
+    this.scene.textures.remove(this.textureKey);
   }
 }

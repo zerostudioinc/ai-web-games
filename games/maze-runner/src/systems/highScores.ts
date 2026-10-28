@@ -73,6 +73,41 @@ export interface RecordedScore {
 }
 
 /**
+ * Slots `score` into a table without saving anything. A tie ranks below the existing equal scores.
+ *
+ * @param top - The table so far, highest first; it is left unchanged.
+ * @param score - The score to add; 0 or less never qualifies.
+ * @returns The table after adding the score, and the rank earned (null when the score did not make the table).
+ */
+export function insertScore(top: readonly number[], score: number): RecordedScore {
+  if (score <= 0) return { top: [...top], rank: null };
+
+  // The new score slots in above the first entry it strictly beats, so ties rank below equal scores.
+  let rank = top.findIndex((existing) => score > existing);
+  // It beat nobody: it only qualifies if there is still room at the end of the table.
+  if (rank === -1) rank = top.length;
+  if (rank >= TOP_SCORE_COUNT) return { top: [...top], rank: null };
+
+  // Insert at `rank` and drop whatever falls off the end of the table.
+  return { top: [...top.slice(0, rank), score, ...top.slice(rank)].slice(0, TOP_SCORE_COUNT), rank };
+}
+
+/**
+ * Saves a difficulty's table. Saving is best-effort: a storage that refuses (quota exceeded, blocked) is ignored.
+ *
+ * @param difficulty - Which difficulty's table to save.
+ * @param top - The table to save, highest first.
+ * @param storage - Where to save it; undefined saves nothing.
+ */
+function saveTopScores(difficulty: Difficulty, top: readonly number[], storage: ScoreStorage | undefined): void {
+  try {
+    storage?.setItem(topScoresKey(difficulty), JSON.stringify(top));
+  } catch {
+    // The result still counts for this session.
+  }
+}
+
+/**
  * Adds `score` to the difficulty's table if it qualifies. A tie ranks below the existing equal scores.
  *
  * @param difficulty - Which difficulty's table to update.
@@ -81,21 +116,31 @@ export interface RecordedScore {
  * @returns The resulting table and the rank earned (null when the score did not make the table).
  */
 export function recordScore(difficulty: Difficulty, score: number, storage: ScoreStorage | undefined = browserStorage()): RecordedScore {
-  const top = loadTopScores(difficulty, storage);
-  if (score <= 0) return { top, rank: null };
+  const recorded = insertScore(loadTopScores(difficulty, storage), score);
+  if (recorded.rank !== null) saveTopScores(difficulty, recorded.top, storage);
+  return recorded;
+}
 
-  // The new score slots in above the first entry it strictly beats, so ties rank below equal scores.
-  let rank = top.findIndex((existing) => score > existing);
-  // It beat nobody: it only qualifies if there is still room at the end of the table.
-  if (rank === -1) rank = top.length;
-  if (rank >= TOP_SCORE_COUNT) return { top, rank: null };
-
-  // Insert at `rank` and drop whatever falls off the end of the table.
-  const updated = [...top.slice(0, rank), score, ...top.slice(rank)].slice(0, TOP_SCORE_COUNT);
-  try {
-    storage?.setItem(topScoresKey(difficulty), JSON.stringify(updated));
-  } catch {
-    // Saving is best-effort; the result still counts for this session.
+/**
+ * Adds several scores to the difficulty's table in one go, for the players of a versus match. The best score goes in first, so
+ * the rank reported for each is the place it finally holds, whatever the other scores do to the table afterwards; equal scores
+ * keep their player order. The table is kept in memory between the scores, so they rank against each other even when saving fails.
+ *
+ * @param difficulty - Which difficulty's table to update.
+ * @param scores - The finished runs' total scores, one per player, in player order.
+ * @param storage - Where to read and save the table; defaults to the browser's localStorage.
+ * @returns The outcome for each score, in the same order as `scores`; each `top` is the table right after that score went in.
+ */
+export function recordScores(difficulty: Difficulty, scores: readonly number[], storage: ScoreStorage | undefined = browserStorage()): RecordedScore[] {
+  let top = loadTopScores(difficulty, storage);
+  // Positions in `scores`, from the highest score to the lowest.
+  const order = scores.map((_, index) => index).sort((a, b) => scores[b] - scores[a]);
+  const recorded: RecordedScore[] = [];
+  for (const index of order) {
+    recorded[index] = insertScore(top, scores[index]);
+    top = recorded[index].top;
   }
-  return { top: updated, rank };
+  // Nothing to write when nobody made the table.
+  if (recorded.some((entry) => entry.rank !== null)) saveTopScores(difficulty, top, storage);
+  return recorded;
 }

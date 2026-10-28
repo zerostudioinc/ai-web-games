@@ -1,11 +1,15 @@
 ## Maze Runner
+Version: 1.1
+
 ### Instruction
 Create a browser-based 2D game using Vite, TypeScript, and Phaser 3. The name of the game is Maze Runner.
 
 Requirements:
 - Landscape support.
-- Single players.
-- Bluetooth controller or keyboard directional (up/down/left/right or WASD).
+- Bluetooth controller or keyboard directional (up/down/left/right or WASD) or touch directional pad.
+- One player or two players versus to compete who escapes first with the highest score.
+  - When there is one player, the player can use any controller mode.
+  - When there are two players, both players can use bluetooth controller if there is more than one or touch or keyboard where player one will be using WASD and player two will be using up/down/left/right direction.
 - About the maze:
   - it is overlay on a hidden grid
   - there are 10 levels of maze
@@ -19,6 +23,13 @@ Requirements:
   - The player will need to restart again at the starting point and loses a live.
   - When the player manage to escape the maze via the exit, the pass the level and move on to the next level.
   - The player wins when they completed all 10 levels.
+- The game in two players versus mode:
+  - When player in versus mode, the screen will be split with player one on the left, player two on the right.
+  - Both player will have the same maze.
+  - Both player will have the same rule and difficulty mode.
+  - Both player will have their own score and will compete to see who escape first.
+  - When one player loses all their live, the other player wins. If both players completes all the levels, the player with the highest score wins.
+  - Both player scores will be tracked and can be store into the high score chart if their score makes it.
 - Scoring:
   - The player is time on how long it takes to escape the maze, the quicker they escape the higher the score.
   - Figure out a way to calculate the score to give the player a score after each level, and the final score will be the sum of all score from each level.
@@ -56,3 +67,4 @@ Style:
   - desert with sand graphic.
   - dungeon with spooky graphic.
   - spaceship with spaceship graphic.
+  - mountain with hill and mountain graphic.

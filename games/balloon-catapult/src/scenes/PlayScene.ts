@@ -118,7 +118,7 @@ export class PlayScene extends Phaser.Scene {
     keyboard?.on('keydown-UP', () => this.paused && this.pauseOverlay.move(-1));
     keyboard?.on('keydown-DOWN', () => this.paused && this.pauseOverlay.move(1));
     keyboard?.on('keydown-ENTER', () => this.paused && this.pauseOverlay.activateSelected());
-    this.director = new WaveDirector(bombLanes(this.difficulty, this.laneCount));
+    this.director = new WaveDirector(bombLanes(this.difficulty, this.playerCount, this.laneCount));
     this.startingHighScore = bestScore(this.difficulty);
 
     // Release the input listeners when the scene stops so restarts do not stack handlers.

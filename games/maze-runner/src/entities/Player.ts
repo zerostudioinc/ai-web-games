@@ -49,11 +49,13 @@ export class Player {
    * @param scene - Scene the runner and its shadow are added to.
    * @param layout - Maze layout; it turns cells into screen positions and sets the figure's size.
    * @param cell - Cell the runner starts on (0-based column and row).
+   * @param variant - 0-based outfit: 0 for player one (and a solo runner), 1 for player two.
    */
   constructor(
     scene: Phaser.Scene,
     private readonly layout: MazeLayout,
     cell: Cell,
+    private readonly variant = 0,
   ) {
     const size = layout.cellSize;
     // The figure fills most of a cell, whatever the maze size: 90% of the cell height.
@@ -61,7 +63,7 @@ export class Player {
     // Soft oval under the feet, 55% of a cell wide, drawn one level below the figure.
     this.shadow = scene.add.ellipse(0, 0, size * 0.55, size * 0.2, 0x000000, 0.3).setDepth(DEPTH - 1);
     // Starts in the standing pose facing down; `teleport` below sets the real position.
-    this.sprite = scene.add.sprite(0, 0, runnerFrameKey('down', IDLE_FRAME)).setScale(this.baseScale).setDepth(DEPTH);
+    this.sprite = scene.add.sprite(0, 0, runnerFrameKey('down', IDLE_FRAME, variant)).setScale(this.baseScale).setDepth(DEPTH);
     this.teleport(cell);
   }
 
@@ -92,7 +94,7 @@ export class Player {
     this.restMs = 0;
     this.facing = direction;
     // `true` keeps an already-running cycle going instead of restarting it on every step.
-    this.sprite.anims.play(runnerWalkKey(direction), true);
+    this.sprite.anims.play(runnerWalkKey(direction, this.variant), true);
   }
 
   /**
@@ -240,6 +242,6 @@ export class Player {
   /** Stops the walk cycle and shows the standing pose for the current facing. */
   private settle(): void {
     this.sprite.anims.stop();
-    this.sprite.setTexture(runnerFrameKey(this.facing, IDLE_FRAME));
+    this.sprite.setTexture(runnerFrameKey(this.facing, IDLE_FRAME, this.variant));
   }
 }

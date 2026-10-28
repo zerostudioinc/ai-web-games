@@ -5,12 +5,13 @@ import Phaser from 'phaser';
 import { Bomb } from '../entities/Bomb';
 import { Button } from '../entities/Button';
 import { TitleBanner } from '../entities/TitleBanner';
-import { CORNER_BUTTON, GAME_WIDTH, MAX_PLAYERS, PLAYER_COLORS, SceneKey, TextureKey } from '../config';
+import { CORNER_BUTTON, GAME_HEIGHT, GAME_WIDTH, MAX_PLAYERS, PLAYER_COLORS, SceneKey, TextureKey, VERSION_LABEL } from '../config';
 import { labelStyle } from '../style';
 import { MenuPadInput } from '../systems/MenuPadInput';
 
 const INPUT_DELAY_MS = 700; // so a button held from the previous screen doesn't start a game
 const HOME_URL = '../../index.html'; // from games/<name>/index.html to the site homepage
+const VERSION_FONT_SIZE = 16; // px; small, so the version label stays unobtrusive
 
 const KEY_NAMES = ['ONE', 'TWO', 'THREE', 'FOUR'] as const; // Phaser names of the number keys that pick a player count
 // Start position, scale and drift speed (px per second) of each background cloud.
@@ -76,6 +77,11 @@ export class MenuScene extends Phaser.Scene {
       color: 0x90caf9,
       onClick: () => window.location.assign(HOME_URL),
     });
+    // Small version label in the bottom-right corner, in line with the Home button's right edge.
+    // It is drawn above the walking bombs so they pass behind it, and skipped when the game has no version.
+    if (VERSION_LABEL) {
+      this.add.text(GAME_WIDTH - margin, GAME_HEIGHT - margin, VERSION_LABEL, labelStyle(VERSION_FONT_SIZE)).setOrigin(1, 1).setDepth(10);
+    }
     // Decorative balloons and a bomb flanking the "How many players?" prompt.
     this.add.image(cx - 330, 345, TextureKey.Balloon).setScale(1.7).setTint(PLAYER_COLORS[0]).setRotation(-0.25);
     this.add.image(cx + 330, 345, TextureKey.Balloon).setScale(1.7).setTint(PLAYER_COLORS[1]).setRotation(0.25);

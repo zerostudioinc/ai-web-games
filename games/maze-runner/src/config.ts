@@ -1,12 +1,18 @@
 /**
  * Maze Runner's shared constants: screen size, play-area layout, timings, and the scene and texture keys.
  */
+import { formatVersion } from '../../../shared/version';
 import type { Difficulty } from './systems/difficulty';
 import type { ThemeId } from './systems/themes';
 
 // Logical canvas size in px (landscape 16:9); Phaser scales it to fit the window.
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
+
+/** Folder name of this game, which is also the key of its version in `__GAME_VERSIONS__`. */
+export const GAME_ID = 'maze-runner';
+/** Version label such as "v1.1", from the `Version:` line of games/maze-runner.md; empty when the file has none. */
+export const VERSION_LABEL = formatVersion(__GAME_VERSIONS__[GAME_ID]);
 
 /** Height of the status bar along the top of the play screen, in px. */
 export const HUD_HEIGHT = 64;
@@ -20,6 +26,16 @@ export const PLAY_AREA = { x: 320, y: HUD_HEIGHT, width: 640, height: GAME_HEIGH
  * and `gap` the space between neighbouring buttons (px).
  */
 export const TOUCH_PAD = { x: 1120, y: 500, buttonSize: 88, gap: 8 } as const;
+
+/**
+ * Layout of the two-player versus screen, which is split into a left and a right half (px).
+ * `top` is where each half's maze area starts: under the status bar and a thin strip showing the level and the controls.
+ * On touch devices `padStrip` is kept free along the bottom of each half for its row of arrow keys, each `padKey` wide with `padGap` between them.
+ */
+export const VERSUS = { top: HUD_HEIGHT + 30, padStrip: 72, padKey: 60, padGap: 8 } as const;
+
+/** Colour (0xRRGGBB) of each player in a versus game: their name tag, their half's frame and the runner's shirt. */
+export const PLAYER_COLORS: readonly number[] = [0x3d8bfd, 0xe84a5f];
 
 /** Lives the runner has in each level; they are restored to this number whenever a new level starts. */
 export const MAX_LIVES = 3;
@@ -37,6 +53,7 @@ export const CLEAR_MS = 1500; // "ESCAPED!" banner and cheer before the level-co
 export const GAME_OVER_MS = 2000; // final "TRAPPED!" banner (no lives left) before the result screen
 export const SEAL_POP_MS = 240; // pop-in of the slab that seals a collapsed passage, and its shrink-out when the passage reopens
 export const RESPAWN_BLINK_MS = 900; // the runner blinks this long after returning to the start
+export const WAITING_MS = Infinity; // how long a "waiting for the other player" note is held: for good, until the scene hides it when the level ends
 
 /** Scene keys, so scenes can start each other without repeating string literals. */
 export const SceneKey = {

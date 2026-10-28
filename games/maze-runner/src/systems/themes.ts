@@ -1,24 +1,24 @@
 /**
- * Visual themes. Each level picks one at random; the palette drives how the maze walls and floor are drawn.
+ * Visual themes. A run gives every level one of them; the palette drives how the maze walls and floor are drawn.
  */
-import { pick, type Random } from './rng';
+import { shuffle, type Random } from './rng';
 
-/** The four looks a level can have. */
-export type ThemeId = 'grassland' | 'desert' | 'dungeon' | 'spaceship';
+/** The five looks a level can have. */
+export type ThemeId = 'grassland' | 'desert' | 'dungeon' | 'spaceship' | 'mountain';
 
-/** Every theme; `pickTheme` chooses from this pool. */
-export const THEME_IDS: readonly ThemeId[] = ['grassland', 'desert', 'dungeon', 'spaceship'];
+/** Every theme, in the order the backgrounds are baked. */
+export const THEME_IDS: readonly ThemeId[] = ['grassland', 'desert', 'dungeon', 'spaceship', 'mountain'];
 
-/** How the wall surface is decorated when the maze is baked: leafy hedge, sandstone blocks, stone bricks or steel panels. */
-export type WallStyle = 'hedge' | 'sandstone' | 'brick' | 'panel';
+/** How the wall surface is decorated when the maze is baked: leafy hedge, sandstone blocks, stone bricks, steel panels or snowy boulders. */
+export type WallStyle = 'hedge' | 'sandstone' | 'brick' | 'panel' | 'rock';
 
 /** Colours and wall look of one theme; every colour is 0xRRGGBB. */
 export interface ThemePalette {
   label: string; // display name, shown in the level intro banner
   wallStyle: WallStyle; // how the walls are decorated
   wall: number; // main colour of the wall body
-  wallLight: number; // highlights on the walls (lit edge, leaf and grit sparkles)
-  wallShadow: number; // dark details on the walls (block joints, brick lines, grit)
+  wallLight: number; // highlights on the walls (lit edge, leaf and grit sparkles, rivets, snow on boulders)
+  wallShadow: number; // dark details on the walls (block joints, brick lines, grit, boulder outlines)
   /** Tint laid over the background inside the maze so the corridors read clearly. */
   floor: number;
   floorAlpha: number; // opacity of the floor tint, 0 (clear) to 1 (solid)
@@ -72,15 +72,42 @@ export const THEMES: Record<ThemeId, ThemePalette> = {
     floorAlpha: 0.92,
     accent: 0x00e5ff,
   },
+  // Grey boulders dusted with snow over a pale alpine meadow, with an orange portal.
+  mountain: {
+    label: 'Mountain',
+    wallStyle: 'rock',
+    wall: 0x7d8a96,
+    wallLight: 0xcfd8e0,
+    wallShadow: 0x37424d,
+    floor: 0xdbe7cf,
+    floorAlpha: 0.9,
+    accent: 0xff7043,
+  },
 };
 
+const MAX_SHUFFLES = 200; // how many shuffles `themeSchedule` tries before it accepts a schedule with neighbours that match
+
 /**
- * Random theme that differs from the previous level's, so consecutive levels never look alike.
+ * Whether any two neighbouring entries of a list are equal.
+ *
+ * @param order - The list to check.
+ * @returns True when some entry is followed by an identical one.
+ */
+const hasNeighbourRepeat = (order: readonly ThemeId[]): boolean => order.some((id, index) => index > 0 && id === order[index - 1]);
+
+/**
+ * The look of every level in a run. Each theme comes up equally often (twice in a ten-level run with five themes),
+ * in a random order in which no two neighbouring levels look alike.
  *
  * @param random - Random source returning [0, 1).
- * @param previous - Theme of the level just finished, which is excluded; omit it for the first level.
- * @returns A theme other than `previous`.
+ * @param levels - Number of levels in the run.
+ * @returns One theme per level, level 1 first.
  */
-export function pickTheme(random: Random, previous?: ThemeId): ThemeId {
-  return pick(random, THEME_IDS.filter((id) => id !== previous));
+export function themeSchedule(random: Random, levels: number): ThemeId[] {
+  // The deck holds every theme the same number of times; when the levels do not divide evenly it is topped up from the start of the list.
+  const deck = Array.from({ length: levels }, (_, index) => THEME_IDS[index % THEME_IDS.length]);
+  let order = shuffle(random, deck);
+  // About a third of the shuffles have no repeat next to each other, so this ends quickly; the cap is only a safety net.
+  for (let attempt = 0; attempt < MAX_SHUFFLES && hasNeighbourRepeat(order); attempt++) order = shuffle(random, deck);
+  return order;
 }

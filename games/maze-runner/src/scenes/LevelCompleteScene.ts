@@ -1,11 +1,12 @@
 /**
- * Level-complete screen, shown after each cleared level: time, par and how the level's score was worked out.
+ * Level-complete screen, shown after each cleared level: time, par and how each player's score was worked out.
+ * A solo game shows one card; a versus game shows one per player, side by side, and marks who escaped first.
  */
 import Phaser from 'phaser';
 import { panelImage } from '../assets/panelArt';
 import { Button } from '../entities/Button';
 import { TitleBanner } from '../entities/TitleBanner';
-import { GAME_HEIGHT, GAME_WIDTH, MAX_FRAME_MS, SceneKey, themeTextureKey } from '../config';
+import { GAME_HEIGHT, GAME_WIDTH, MAX_FRAME_MS, PLAYER_COLORS, SceneKey, themeTextureKey } from '../config';
 import { COLOR, hex, labelStyle, plainStyle } from '../style';
 import { DIFFICULTY_SETTINGS } from '../systems/difficulty';
 import { onKeyPress } from '../systems/KeyPress';
@@ -13,27 +14,43 @@ import { MenuPadInput } from '../systems/MenuPadInput';
 import { isRunComplete, type LevelResult, type RunState } from '../systems/run';
 import { formatScore, formatTime } from '../systems/score';
 import type { ThemeId } from '../systems/themes';
+import { matchWinner } from '../systems/versus';
 import type { PlaySceneData } from './PlayScene';
+import type { ResultData } from './ResultScene';
 
-/** Scene data sent by PlayScene when the runner escapes a maze. */
+/** Scene data sent by PlayScene when every player has escaped a maze. */
 export interface LevelCompleteData {
-  /** The run after the cleared level has been added to it: the level counter has moved on and the total includes this level's points. */
+  /** The run after the cleared level has been added to it: the level counter has moved on and each total includes this level's points. */
   run: RunState;
-  result: LevelResult; // how the cleared level went: its number, escape time, par time and score breakdown
-  theme: ThemeId; // theme of the cleared level: it backs this screen and is passed on so the next level looks different
+  results: LevelResult[]; // how the cleared level went for each player, in player order: its number, escape time, par time and score breakdown
+  firstEscaper: number | null; // versus: the 0-based player who escaped first; null in a solo game
+  theme: ThemeId; // theme of the cleared level: it backs this screen
+}
+
+/** The position and size of a score card, in px; `x` and `y` are its top-left corner. */
+interface PanelBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 const INPUT_DELAY_MS = 700; // ms after the screen opens during which input is ignored, so the press that ended the level cannot skip this screen
-/** The score card: `x`/`y` is its top-left corner and `width`/`height` its size, all in px. */
-const PANEL = { x: 340, y: 165, width: 600, height: 420 } as const;
-const ROW_START = 36; // distance from the card's top edge to the centre of the first row, px
-const ROW_STEP = 44; // distance between the centres of neighbouring rows, px
-const PADDING = 40; // space between the card's left and right edges and the text, px
+const SOLO_PANEL: PanelBox = { x: 340, y: 165, width: 600, height: 420 }; // the score card of a solo game
+const VERSUS_PANELS: readonly PanelBox[] = [
+  { x: 90, y: 150, width: 520, height: 440 },
+  { x: 670, y: 150, width: 520, height: 440 },
+]; // the two cards of a versus game, one per player, side by side
+const HEADING_HEIGHT = 56; // height of the coloured strip with the player's name on a versus card, px
+const ROW_START = 36; // distance from the card's top edge (or the bottom of its name strip) to the centre of the first row, px
+const ROW_STEP = 44; // distance between the centres of neighbouring rows on a solo card, px
+const PADDING = 40; // space between a solo card's left and right edges and the text, px
 
 /** Summary of the level just cleared; continues to the next level, or to the final result after the last one. */
 export class LevelCompleteScene extends Phaser.Scene {
   private run!: RunState; // the run after the cleared level was added to it
-  private result!: LevelResult; // how the cleared level went
+  private results!: LevelResult[]; // how the cleared level went for each player
+  private firstEscaper: number | null = null; // versus: the player who escaped first
   private theme!: ThemeId; // theme of the cleared level
   private title!: TitleBanner; // animated "LEVEL n CLEARED!" heading
   private pad!: MenuPadInput; // controller input; a confirm or Start press continues
@@ -52,12 +69,13 @@ export class LevelCompleteScene extends Phaser.Scene {
    */
   init(data: LevelCompleteData): void {
     this.run = data.run;
-    this.result = data.result;
+    this.results = data.results;
+    this.firstEscaper = data.firstEscaper;
     this.theme = data.theme;
     this.sinceOpenMs = 0;
   }
 
-  /** Builds the dimmed backdrop, the heading, the score card, the continue button and the key hint, then starts listening for input. */
+  /** Builds the dimmed backdrop, the heading, the score cards, the continue button and the key hint, then starts listening for input. */
   create(): void {
     const cx = GAME_WIDTH / 2; // x of the screen's centre line, px
 
@@ -65,11 +83,11 @@ export class LevelCompleteScene extends Phaser.Scene {
     this.add.image(0, 0, themeTextureKey(this.theme)).setOrigin(0);
     // Black layer at 55% opacity over the whole screen.
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.55).setOrigin(0);
-    // Heading names the level just cleared (1-based).
-    this.title = new TitleBanner(this, cx, [{ text: `LEVEL ${this.result.level} CLEARED!`, y: 90, size: 80, top: '#fff59d', bottom: '#ff7043' }]);
+    // Heading names the level just cleared (1-based); every player cleared the same one.
+    this.title = new TitleBanner(this, cx, [{ text: `LEVEL ${this.results[0].level} CLEARED!`, y: 90, size: 80, top: '#fff59d', bottom: '#ff7043' }]);
 
-    // The score card in the middle of the screen.
-    this.drawPanel();
+    // One score card per player: in the middle of the screen when solo, side by side in versus.
+    this.results.forEach((_, player) => this.drawPanel(player));
 
     // `run` is already advanced, so this is true after the final level, when the next stop is the result screen.
     const last = isRunComplete(this.run);
@@ -109,17 +127,37 @@ export class LevelCompleteScene extends Phaser.Scene {
   }
 
   /**
-   * A cream card listing each step of the score calculation, ending with the level score and the running total.
+   * A cream card listing each step of one player's score calculation, ending with the level score and the running total.
    * The rows follow the formula: base value x speed bonus x difficulty multiplier = level score.
+   * A versus card is a little smaller, and has a strip with the player's name (and a marker for the first one out) on top.
+   *
+   * @param player - 0-based player number whose card is drawn.
    */
-  private drawPanel(): void {
-    const { score, elapsedMs, parMs, level } = this.result; // score breakdown, escape and par times (ms), 1-based level number
+  private drawPanel(player: number): void {
+    const versus = this.results.length > 1;
+    const panel = versus ? VERSUS_PANELS[player] : SOLO_PANEL; // where the card goes
+    const { score, elapsedMs, parMs, level } = this.results[player]; // score breakdown, escape and par times (ms), 1-based level number
     const ink = hex(COLOR.ink); // dark text colour as a CSS string
-    const left = PANEL.x + PADDING; // x of the labels' left edge, px
-    const right = PANEL.x + PANEL.width - PADDING; // x of the values' right edge, px
+    const padding = versus ? 30 : PADDING; // space between the card's edges and the text, px
+    const rowStep = versus ? 40 : ROW_STEP; // distance between the centres of neighbouring rows, px
+    const left = panel.x + padding; // x of the labels' left edge, px
+    const right = panel.x + panel.width - padding; // x of the values' right edge, px
+    const top = panel.y + (versus ? HEADING_HEIGHT : 0); // y where the rows start counting from, px
 
-    // Plain cream card, drawn first so the text lands on top; `panelImage` wants the card's centre, not its corner.
-    panelImage(this, PANEL.x + PANEL.width / 2, PANEL.y + PANEL.height / 2, { width: PANEL.width, height: PANEL.height, radius: 24, fill: COLOR.cream });
+    // Cream card, drawn first so the text lands on top; `panelImage` wants the card's centre, not its corner.
+    // On a versus card the top strip is in the player's colour.
+    panelImage(this, panel.x + panel.width / 2, panel.y + panel.height / 2, {
+      width: panel.width,
+      height: panel.height,
+      radius: 24,
+      fill: COLOR.cream,
+      heading: versus ? { height: HEADING_HEIGHT, color: PLAYER_COLORS[player] } : undefined,
+    });
+    if (versus) {
+      this.add.text(left, panel.y + HEADING_HEIGHT / 2, `PLAYER ${player + 1}`, plainStyle(34, ink)).setOrigin(0, 0.5);
+      // The first one out of the maze gets a marker at the right end of the strip.
+      if (this.firstEscaper === player) this.add.text(right, panel.y + HEADING_HEIGHT / 2, 'FIRST OUT!', plainStyle(28, ink)).setOrigin(1, 0.5);
+    }
 
     // Label and value of each row: the two times, the level's base value, then the speed and difficulty multipliers.
     const rows: [string, string][] = [
@@ -131,21 +169,21 @@ export class LevelCompleteScene extends Phaser.Scene {
     ];
     // Labels are left-aligned and values right-aligned, each row centred on its own y.
     rows.forEach(([label, value], index) => {
-      const y = PANEL.y + ROW_START + index * ROW_STEP;
-      this.add.text(left, y, label, plainStyle(28, ink)).setOrigin(0, 0.5);
-      this.add.text(right, y, value, plainStyle(28, ink)).setOrigin(1, 0.5);
+      const y = top + ROW_START + index * rowStep;
+      this.add.text(left, y, label, plainStyle(versus ? 26 : 28, ink)).setOrigin(0, 0.5);
+      this.add.text(right, y, value, plainStyle(versus ? 26 : 28, ink)).setOrigin(1, 0.5);
     });
 
     // A thin rule just under the last row, 3 px tall and half opaque, separates the workings from the result.
-    const dividerY = PANEL.y + ROW_START + rows.length * ROW_STEP - 8;
-    this.add.rectangle(PANEL.x + PANEL.width / 2, dividerY, right - left, 3, COLOR.ink, 0.5);
+    const dividerY = top + ROW_START + rows.length * rowStep - 8;
+    this.add.rectangle(panel.x + panel.width / 2, dividerY, right - left, 3, COLOR.ink, 0.5);
 
     // Result lines: this level's points (large, orange), then the running total, which already includes them.
-    const scoreY = dividerY + 44;
-    this.add.text(left, scoreY, 'Level score', plainStyle(34, ink)).setOrigin(0, 0.5);
-    this.add.text(right, scoreY, `+${formatScore(score.points)}`, plainStyle(50, '#c2410c')).setOrigin(1, 0.5);
-    this.add.text(left, scoreY + 56, 'Total score', plainStyle(28, ink)).setOrigin(0, 0.5);
-    this.add.text(right, scoreY + 56, formatScore(this.run.totalScore), plainStyle(34, ink)).setOrigin(1, 0.5);
+    const scoreY = dividerY + (versus ? 40 : 44);
+    this.add.text(left, scoreY, 'Level score', plainStyle(versus ? 30 : 34, ink)).setOrigin(0, 0.5);
+    this.add.text(right, scoreY, `+${formatScore(score.points)}`, plainStyle(versus ? 44 : 50, '#c2410c')).setOrigin(1, 0.5);
+    this.add.text(left, scoreY + (versus ? 50 : 56), 'Total score', plainStyle(versus ? 26 : 28, ink)).setOrigin(0, 0.5);
+    this.add.text(right, scoreY + (versus ? 50 : 56), formatScore(this.run.totals[player]), plainStyle(versus ? 30 : 34, ink)).setOrigin(1, 0.5);
   }
 
   /**
@@ -155,13 +193,19 @@ export class LevelCompleteScene extends Phaser.Scene {
   private proceed(): void {
     // A key or button still held from the gameplay must not skip this screen straight away.
     if (this.sinceOpenMs < INPUT_DELAY_MS) return;
-    // Every level cleared: the run is won.
+    // Every level cleared: the run is won. In versus the higher total takes the match (a tie is a draw).
     if (isRunComplete(this.run)) {
-      this.scene.start(SceneKey.Result, { run: this.run, won: true });
+      const versus = this.run.playerCount > 1;
+      const data: ResultData = {
+        run: this.run,
+        won: true,
+        match: versus ? { winner: matchWinner(this.run.totals), reason: 'completed' } : undefined,
+      };
+      this.scene.start(SceneKey.Result, data);
       return;
     }
-    // The next level gets the updated run and this level's theme, so it picks a different look.
-    const next: PlaySceneData = { run: this.run, previousTheme: this.theme };
+    // The next level gets the updated run, which carries the theme of every level.
+    const next: PlaySceneData = { run: this.run };
     this.scene.start(SceneKey.Play, next);
   }
 }

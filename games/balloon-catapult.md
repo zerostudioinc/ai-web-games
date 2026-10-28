@@ -1,4 +1,6 @@
 ## Balloon Catapult
+Version: 1.1
+
 ### Instruction
 Create a browser-based 2D game using Vite, TypeScript, and Phaser 3. The name of the game is Balloon Catapult.
 
@@ -17,16 +19,20 @@ Requirements:
   - Very Easy
     - Starting Bomb Speed: 24px/s
     - Speed Increment per Wave: 6px/s
-    - Bomb only shows up in two middle lanes.
+    - Bomb only shows up in two lanes when playing in one player game, bombs on lane 2 and 3.
+    - When playing with two or more players, bombs will show up in all lanes.
   - Easy
     - Starting Bomb Speed: 36px/s
     - Speed Increment per Wave: 12px/s
+    - Bomb comes from all lanes.
   - Normal
     - Starting Bomb Speed: 60px/s
     - Speed Increment per Wave: 18px/s
+    - Bomb comes from all lanes.
   - Hard
     - Starting Bomb Speed: 84px/s
     - Speed Increment per Wave: 24px/s
+    - Bomb comes from all lanes.
 - There will be 5 waves of bomb walking towards the player catapult.
 - First wave will have 20 bombs, and the number grows by 5 after each wave, wave 2 will be 25, wave 3 will be 30 bombs and so on.
 - Show the total number of bombs remaining in each wave until it goes down to 0.

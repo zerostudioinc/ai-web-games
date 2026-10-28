@@ -4,9 +4,9 @@
 import Phaser from 'phaser';
 import { Button } from '../entities/Button';
 import { TitleBanner } from '../entities/TitleBanner';
-import { CORNER_BUTTON, DIFFICULTY_COLORS, GAME_WIDTH, MAX_PLAYERS, SceneKey, TextureKey } from '../config';
+import { CORNER_BUTTON, DIFFICULTY_COLORS, GAME_WIDTH, MAX_PLAYERS, SceneKey, TextureKey, laneCountFor } from '../config';
 import { labelStyle } from '../style';
-import { DIFFICULTIES, DIFFICULTY_SETTINGS } from '../systems/difficulty';
+import { DIFFICULTIES, DIFFICULTY_SETTINGS, bombLanes } from '../systems/difficulty';
 import { MenuPadInput } from '../systems/MenuPadInput';
 
 const INPUT_DELAY_MS = 400; // ignore input this long after opening, so a button held from the last screen picks nothing
@@ -66,8 +66,12 @@ export class DifficultyScene extends Phaser.Scene {
       this.input.keyboard?.on(`keydown-${KEY_NAMES[index]}`, () => this.start(index));
     });
     this.drawRing();
-    // Caption under the first (easiest) button explaining who it is for.
-    this.add.text(this.buttonX(0), BUTTON_Y + BUTTON_HEIGHT / 2 + 34, 'For little players:\nmiddle lanes, slow bombs', labelStyle(22)).setOrigin(0.5, 0).setAlign('center');
+    // Caption under the first (easiest) button explaining who it is for. Only a solo game gets the two-lane limit,
+    // so a bigger group is told about the slow bombs alone.
+    const laneCount = laneCountFor(this.players);
+    const lanesLimited = bombLanes(DIFFICULTIES[0], this.players, laneCount).length < laneCount;
+    const caption = `For little players:\n${lanesLimited ? 'two lanes, slow bombs' : 'slow bombs'}`;
+    this.add.text(this.buttonX(0), BUTTON_Y + BUTTON_HEIGHT / 2 + 34, caption, labelStyle(22)).setOrigin(0.5, 0).setAlign('center');
 
     // Back button in the top-left corner, then the control hints along the bottom.
     const { width, height, fontSize, margin } = CORNER_BUTTON;

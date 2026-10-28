@@ -7,6 +7,6 @@ This is a simple 2D web based game that can have 1 to 4 players. The objective o
 See [balloon-catapult.md](games/balloon-catapult.md) for the game overview and requirements.
 
 ## Maze Runner
-This is a simple 2D web based game, this is a single player game. The objective of the game is for the player to run thru a maze to get to the exit, the player will start from the middle and needs to run to the exit. The maze should be overlay on a hidden grid where player movement via directional pad will move them one square. Players will have 3 lives to escape a maze, and the player will be time, the quicker the player escape the higher the score will be. There will be 10 levels and each level will be randomly generated.
+This is a simple 2D web based game, this is a one or two players game. The objective of the game is for the player to run thru a maze to get to the exit, the player will start from the middle and needs to run to the exit. The maze should be overlay on a hidden grid where player movement via directional pad will move them one square. Players will have 3 lives to escape a maze, and the player will be time, the quicker the player escape the higher the score will be. There will be 10 levels and each level will be randomly generated.
 
 See [maze-runner.md](games/maze-runner.md) for the game overview and requirements.

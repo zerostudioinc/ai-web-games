@@ -19,7 +19,9 @@
     // Skip checking the .d.ts files of dependencies, which speeds up type checks.
     "skipLibCheck": true,
     // Type-check only; Vite does the actual building.
-    "noEmit": true
+    "noEmit": true,
+    // Lets vite.config.ts import ./shared/version.ts with its extension, which Vite's native config loader requires.
+    "allowImportingTsExtensions": true
   },
   // Everything that is type-checked: game code, code shared between games, and the Vite config.
   "include": ["games", "shared", "vite.config.ts"]

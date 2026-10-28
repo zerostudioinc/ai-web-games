@@ -2,12 +2,18 @@
  * Balloon Catapult's shared constants (screen size, field layout, tuning, scene and texture keys)
  * and the helpers that lay out lanes and catapults.
  */
+import { formatVersion } from '../../../shared/version';
 import type { Difficulty } from './systems/difficulty';
 import type { Bounds } from './systems/movement';
 
 // Logical canvas size in px; Phaser scales it to fit the window.
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
+
+/** Folder name of this game, which is also the key of its version in `__GAME_VERSIONS__`. */
+export const GAME_ID = 'balloon-catapult';
+/** Version label such as "v1.1", from the `Version:` line of games/balloon-catapult.md; empty when the file has none. */
+export const VERSION_LABEL = formatVersion(__GAME_VERSIONS__[GAME_ID]);
 
 /** Most players that can share one game (one catapult each). */
 export const MAX_PLAYERS = 4;
