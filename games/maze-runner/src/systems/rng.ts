@@ -41,3 +41,20 @@ export const randomSeed = (): number => Math.floor(Math.random() * 0x100000000);
  * @returns One element of `items`, each equally likely.
  */
 export const pick = <T>(random: Random, items: readonly T[]): T => items[Math.floor(random() * items.length)];
+
+/**
+ * A shuffled copy of a list (Fisher-Yates), so every order is equally likely.
+ *
+ * @param random - Random source returning [0, 1); the same sequence gives the same order.
+ * @param items - The list to shuffle; it is not modified.
+ * @returns A new array with the same elements in a random order.
+ */
+export function shuffle<T>(random: Random, items: readonly T[]): T[] {
+  const result = [...items];
+  // Walk from the end, swapping each element with a random one at or before it.
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}

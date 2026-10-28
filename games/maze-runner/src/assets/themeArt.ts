@@ -1,5 +1,5 @@
 /**
- * Full-screen backgrounds for the four level themes and the menu. Each is drawn once at start-up and baked to a texture.
+ * Full-screen backgrounds for the five level themes and the menu. Each is drawn once at start-up and baked to a texture.
  * `W` and `H` are the screen's width and height in px.
  */
 import type Phaser from 'phaser';
@@ -518,6 +518,137 @@ function drawSpaceship(g: Gfx, random: Random): void {
   }
 }
 
+// ---------------------------------------------------------------- Mountain
+
+/**
+ * Draws a mountain: a rocky body lit on its left, a shaded right face and a jagged snow cap.
+ *
+ * @param g - Graphics object to draw on.
+ * @param x - X of the summit, px.
+ * @param baseY - Y of the foot of the mountain, px; the peak rises above it.
+ * @param width - Width of the foot, px.
+ * @param height - Height from the foot to the summit, px.
+ * @param rock - Colour of the lit face as 0xRRGGBB; the shaded face is a darker tone of it.
+ */
+function drawPeak(g: Gfx, x: number, baseY: number, width: number, height: number, rock: number): void {
+  const top = baseY - height; // y of the summit, px
+  const half = width / 2;
+  // The lit face is the whole triangle; the shaded right face goes on top of it.
+  g.fillStyle(rock).fillTriangle(x - half, baseY, x, top, x + half, baseY);
+  g.fillStyle(shade(rock, 0.74)).fillPoints(
+    [{ x, y: top }, { x: x + half, y: baseY }, { x: x + width * 0.1, y: baseY }, { x: x + width * 0.03, y: top + height * 0.5 }],
+    true,
+  );
+  // Snow cap with a zigzag lower edge about a third of the way down. At depth d below the summit the mountain is
+  // d * half / height either side of the centre, which gives the width of the cap at its edge.
+  const edge = height * 0.32; // depth of the snow line below the summit, px
+  const reach = (edge * half) / height; // half the mountain's width at the snow line, px
+  const snow = [
+    { x, y: top },
+    { x: x + reach, y: top + edge },
+    { x: x + width * 0.09, y: top + edge + height * 0.07 },
+    { x: x + width * 0.03, y: top + edge - height * 0.02 },
+    { x: x - width * 0.04, y: top + edge + height * 0.09 },
+    { x: x - width * 0.1, y: top + edge + height * 0.01 },
+    { x: x - reach, y: top + edge },
+  ];
+  g.fillStyle(0xffffff).fillPoints(snow, true);
+  // The right half of the cap is in shade: a pale blue wash over it.
+  g.fillStyle(0xb9d3ea, 0.6).fillPoints(snow.slice(0, 4), true);
+}
+
+/**
+ * Draws a rolling hill: a wide dome that runs down off the bottom of the screen, with a lighter crest line.
+ *
+ * @param g - Graphics object to draw on.
+ * @param x - X of the middle of the hill, px.
+ * @param baseY - Y of the hill's left and right feet, px.
+ * @param width - Width of the hill at its feet, px.
+ * @param height - Rise of the crest above the feet, px.
+ * @param color - Grass colour as 0xRRGGBB.
+ */
+function drawHill(g: Gfx, x: number, baseY: number, width: number, height: number, color: number): void {
+  // The crest: 25 points along the top half of an ellipse (angles pi to 2 pi; y grows downward).
+  const crest = Array.from({ length: 25 }, (_, k) => {
+    const angle = Math.PI + (k / 24) * Math.PI;
+    return { x: x + (Math.cos(angle) * width) / 2, y: baseY + Math.sin(angle) * height };
+  });
+  // Filled down past the bottom of the screen, so a nearer hill simply paints over it.
+  g.fillStyle(color).fillPoints([...crest, { x: x + width / 2, y: H }, { x: x - width / 2, y: H }], true);
+  g.lineStyle(3, shade(color, 1.25), 0.55).strokePoints(crest);
+}
+
+/**
+ * Draws a pine tree: a ground shadow, a short trunk and three stacked boughs, lighter on the left, with snow on their tips.
+ *
+ * @param g - Graphics object to draw on.
+ * @param x - X of the trunk, px.
+ * @param baseY - Y of the foot of the trunk, px; the tree grows upward from here.
+ * @param scale - Size multiplier; 1 gives a tree 47 px tall.
+ */
+function drawPine(g: Gfx, x: number, baseY: number, scale: number): void {
+  g.fillStyle(0x000000, 0.2).fillEllipse(x + 6 * scale, baseY, 26 * scale, 7 * scale);
+  g.fillStyle(0x5d4037).fillRect(x - 2.5 * scale, baseY - 10 * scale, 5 * scale, 10 * scale);
+  // Each bough is [height of its lower edge above the foot, half its width, its height], all in px at scale 1; the lowest comes first.
+  for (const [lift, half, height] of [[8, 13, 20], [20, 10.5, 18], [31, 7.5, 16]] as const) {
+    const bottom = baseY - lift * scale;
+    const apex = bottom - height * scale;
+    g.fillStyle(0x1b5e20).fillTriangle(x - half * scale, bottom, x, apex, x + half * scale, bottom);
+    // The lit left half is a lighter green.
+    g.fillStyle(0x2e7d32).fillTriangle(x - half * scale, bottom, x, apex, x, bottom);
+    // A dab of snow on the tip, as wide as the bough is at 28% of its height.
+    g.fillStyle(0xffffff, 0.85).fillTriangle(x - half * 0.28 * scale, apex + height * 0.28 * scale, x, apex, x + half * 0.28 * scale, apex + height * 0.28 * scale);
+  }
+}
+
+/**
+ * Paints the mountain background: a sky with a sun and clouds, two ranges of snow-capped peaks, rolling hills,
+ * a meadow with grass tufts and flowers, and pines and boulders on the slopes.
+ *
+ * @param g - Graphics object to draw on (the full-screen texture).
+ * @param random - Random source for the peaks, clouds and scenery; a fixed seed paints the same picture every time.
+ */
+function drawMountain(g: Gfx, random: Random): void {
+  // Sky: deep blue overhead, fading to a pale haze toward the horizon.
+  verticalGradient(g, 0x3f8fdc, 0xf4fbff);
+  // The sun: eight stacked translucent discs round a bright core.
+  for (let ring = 8; ring >= 1; ring--) g.fillStyle(0xfff59d, 0.05).fillCircle(1050, 150, ring * 26);
+  g.fillStyle(0xfffde7).fillCircle(1050, 150, 30);
+  // Seven clouds, each three overlapping soft ovals of random size.
+  for (const p of scatter(random, 7, { x: 0, y: HUD_HEIGHT + 20, width: W, height: 260 })) {
+    const size = 0.7 + random() * 0.8;
+    g.fillStyle(0xffffff, 0.85)
+      .fillEllipse(p.x, p.y, 120 * size, 34 * size)
+      .fillEllipse(p.x - 34 * size, p.y + 8 * size, 80 * size, 26 * size)
+      .fillEllipse(p.x + 38 * size, p.y + 8 * size, 90 * size, 28 * size);
+  }
+  // Far range: eight pale blue-grey peaks. Each is placed in its own eighth of the width, with some random shift.
+  for (let i = 0; i < 8; i++) drawPeak(g, ((i + 0.2 + random() * 0.6) * W) / 8, 470, 260 + random() * 120, 150 + random() * 90, 0x9db3c8);
+  // Near range: five bigger, darker peaks in front of them.
+  for (let i = 0; i < 5; i++) drawPeak(g, ((i + 0.3 + random() * 0.4) * W) / 5, 530, 340 + random() * 160, 220 + random() * 100, 0x6f8499);
+
+  // Rolling hills in three layers, the nearest last: [baseY of the feet, how many hills, tallest rise, grass colour].
+  for (const [baseY, count, rise, color] of [[590, 4, 100, 0x8cc872], [640, 3, 80, 0x6ab556], [690, 3, 55, 0x4f9d44]] as const) {
+    for (let i = 0; i < count; i++) {
+      drawHill(g, ((i + 0.5) * W) / count + (random() - 0.5) * 80, baseY, 520 + random() * 200, rise * (0.6 + random() * 0.4), color);
+    }
+  }
+  // The meadow in front: grass tufts and alpine flowers over the lower part of the screen.
+  const meadow: Rect = { x: 0, y: 580, width: W, height: H - 580 };
+  scatter(random, 260, meadow).forEach((p, i) => drawTuft(g, p.x, p.y, 0.8 + (i % 3) * 0.25, i % 2 === 0));
+  scatter(random, 70, meadow).forEach((p, i) => drawFlower(g, p.x, p.y, FLOWER_COLORS[i % FLOWER_COLORS.length]));
+
+  // Pines on the slopes beside the maze and a row of small distant ones along the hills, painted from the back to the front.
+  const slopes = SIDE_STRIPS.map((strip): Rect => ({ ...strip, y: 450, height: H - 470 }));
+  const pines = [
+    ...slopes.flatMap((slope) => scatter(random, 6, slope).map((p) => ({ ...p, scale: 1 + random() * 0.6 }))),
+    ...scatter(random, 14, { x: 0, y: 545, width: W, height: 50 }).map((p) => ({ ...p, scale: 0.5 + random() * 0.3 })),
+  ].sort((a, b) => a.y - b.y);
+  for (const pine of pines) drawPine(g, pine.x, pine.y, pine.scale);
+  // Three boulders on each slope.
+  for (const slope of slopes) scatter(random, 3, slope).forEach((p) => drawRock(g, p.x, p.y, 8 + random() * 8, 0x8d99a3));
+}
+
 // ---------------------------------------------------------------- Menu
 
 /**
@@ -563,6 +694,7 @@ const THEME_DRAWERS: Record<ThemeId, (g: Gfx, random: Random) => void> = {
   desert: drawDesert,
   dungeon: drawDungeon,
   spaceship: drawSpaceship,
+  mountain: drawMountain,
 };
 
 /**

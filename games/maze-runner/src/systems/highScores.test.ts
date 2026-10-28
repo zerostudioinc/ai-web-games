@@ -2,7 +2,7 @@
  * Tests for the saved top-five score tables: loading, ranking, trimming and coping with bad storage.
  */
 import { describe, expect, it } from 'vitest';
-import { TOP_SCORE_COUNT, bestScore, loadTopScores, recordScore, topScoresKey, type ScoreStorage } from './highScores';
+import { TOP_SCORE_COUNT, bestScore, insertScore, loadTopScores, recordScore, recordScores, topScoresKey, type ScoreStorage } from './highScores';
 
 /**
  * In-memory stand-in for localStorage.
@@ -105,5 +105,77 @@ describe('recordScore', () => {
 describe('bestScore', () => {
   it('is 0 when there are no scores', () => {
     expect(bestScore('normal', memoryStorage())).toBe(0);
+  });
+});
+
+// Inserting works on a table in memory: it ranks the score and returns the new table without touching the old one or any storage.
+describe('insertScore', () => {
+  it('slots the score in by rank and leaves the old table unchanged', () => {
+    const table = [900, 500];
+    expect(insertScore(table, 700)).toEqual({ top: [900, 700, 500], rank: 1 });
+    expect(table).toEqual([900, 500]);
+  });
+
+  it('ranks a tie below the equal score, and drops the lowest of a full table', () => {
+    expect(insertScore([600], 600)).toEqual({ top: [600, 600], rank: 1 });
+    expect(insertScore([500, 400, 300, 200, 100], 250)).toEqual({ top: [500, 400, 300, 250, 200], rank: 3 });
+  });
+
+  it('does not rank a score that misses the table', () => {
+    expect(insertScore([500, 400, 300, 200, 100], 100).rank).toBeNull(); // ties the last place, which the earlier score keeps
+    expect(insertScore([], 0).rank).toBeNull();
+  });
+});
+
+// Both players of a versus match are recorded together; the better score goes in first so each rank reported is final.
+describe('recordScores', () => {
+  it('reports each rank as the place it finally holds when both scores qualify', () => {
+    const storage = memoryStorage();
+    recordScore('normal', 1000, storage);
+    recordScore('normal', 500, storage);
+    // Player two's 900 beats player one's 700, whatever the order they are given in.
+    const [one, two] = recordScores('normal', [700, 900], storage);
+    expect(two.rank).toBe(1);
+    expect(one.rank).toBe(2);
+    expect(loadTopScores('normal', storage)).toEqual([1000, 900, 700, 500]);
+  });
+
+  it('ranks equal scores in player order', () => {
+    const [one, two] = recordScores('hard', [800, 800], memoryStorage());
+    expect(one.rank).toBe(0);
+    expect(two.rank).toBe(1);
+  });
+
+  it('records only the score that makes a full table, and pushes the lowest entries out', () => {
+    const storage = memoryStorage();
+    for (const score of [500, 400, 300, 200, 100]) recordScore('easy', score, storage);
+    const [one, two] = recordScores('easy', [450, 50], storage);
+    expect(one.rank).toBe(1);
+    expect(two.rank).toBeNull(); // below the lowest score that is left
+    expect(loadTopScores('easy', storage)).toEqual([500, 450, 400, 300, 200]);
+
+    const [first, second] = recordScores('easy', [600, 550], storage);
+    expect([first.rank, second.rank]).toEqual([0, 1]);
+    expect(loadTopScores('easy', storage)).toEqual([600, 550, 500, 450, 400]);
+  });
+
+  it('writes nothing when nobody makes the table', () => {
+    const storage = memoryStorage();
+    const written: string[] = [];
+    const spy: ScoreStorage = { getItem: (key) => storage.getItem(key), setItem: (key) => written.push(key) };
+    expect(recordScores('normal', [0, -5], spy).map((entry) => entry.rank)).toEqual([null, null]);
+    expect(written).toEqual([]);
+  });
+
+  it('still ranks the scores against each other when saving fails', () => {
+    const failing: ScoreStorage = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('quota exceeded');
+      },
+    };
+    const [one, two] = recordScores('normal', [10, 20], failing);
+    expect(two.rank).toBe(0);
+    expect(one.rank).toBe(1); // a second read of the unsaved table would have said 0 for both
   });
 });

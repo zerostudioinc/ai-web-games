@@ -1,24 +1,36 @@
 /**
- * Main menu: the title, a card per difficulty showing its best score, and corner buttons for High Scores and Home.
+ * Main menu: the title, a choice of one player or two players versus, a card per difficulty showing its best score,
+ * corner buttons for High Scores and Home, and the game's version in the bottom-right corner.
  */
 import Phaser from 'phaser';
 import { IDLE_FRAME, runnerFrameKey, runnerWalkKey } from '../assets/runnerArt';
 import { Button } from '../entities/Button';
 import { DifficultyCard } from '../entities/DifficultyCard';
 import { TitleBanner } from '../entities/TitleBanner';
-import { CORNER_BUTTON, GAME_HEIGHT, GAME_WIDTH, MAX_FRAME_MS, SceneKey, TextureKey } from '../config';
+import { CORNER_BUTTON, GAME_HEIGHT, GAME_WIDTH, MAX_FRAME_MS, SceneKey, TextureKey, VERSION_LABEL } from '../config';
 import { labelStyle } from '../style';
 import { DIFFICULTIES, type Difficulty } from '../systems/difficulty';
 import { bestScore } from '../systems/highScores';
 import { onKeyPress } from '../systems/KeyPress';
 import { LEVEL_COUNT } from '../systems/levels';
 import { MenuPadInput } from '../systems/MenuPadInput';
-import { startRun } from '../systems/run';
+import { startRun, type PlayerCount } from '../systems/run';
 
 const INPUT_DELAY_MS = 600; // ms after the menu opens during which a game start or High Scores is ignored, so a key or button held from the previous screen cannot trigger them
 const HOME_URL = '../../index.html'; // from games/<name>/index.html to the site homepage; the Home button goes there
+const VERSION_FONT_SIZE = 16; // px; small, so the version label stays unobtrusive
 const CARD_SPACING = 304; // distance between the centres of neighbouring difficulty cards, px
-const CARD_Y = 475; // centre y of the difficulty cards, px; keeps a selected card's ring clear of the tagline above and the key hint below
+const CARD_Y = 475; // centre y of the difficulty cards, px; keeps a selected card's ring clear of the player-count buttons above and the key hint below
+const TAGLINE_Y = 238; // centre y of the one-line goal under the title, px
+const MODE_Y = 290; // centre y of the two player-count buttons, px; their ring stays clear of the tagline above and of a selected card's ring below
+const MODE_BUTTON = { width: 290, height: 46, fontSize: 24, gap: 24 } as const; // size of a player-count button, its label size and the gap between the two, px
+/** The player-count choices, left to right: how many play, the button's label and its colour (0xRRGGBB). */
+const MODES: readonly { count: PlayerCount; label: string; color: number }[] = [
+  { count: 1, label: '1 PLAYER', color: 0x4fc3f7 },
+  { count: 2, label: '2 PLAYERS VERSUS', color: 0xff8a65 },
+];
+const SOLO_TAGLINE = `Escape ${LEVEL_COUNT} mazes before the dead ends seal behind you!`; // the goal of a one-player game
+const VERSUS_TAGLINE = 'Race to the exit!  P1: W A S D or controller 1   P2: arrow keys or controller 2'; // the goal of a versus game, with each player's controls
 // Phaser names of the number keys 1 to 9; the nth difficulty card (left to right) starts on number key n.
 const NUMBER_KEYS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'] as const;
 // Index of the card highlighted when the menu opens: Normal.
@@ -32,14 +44,19 @@ interface Spark {
   phase: number; // offset of this spark's twinkle, in radians, so the sparks do not all pulse together
 }
 
-/** Main menu: asks which difficulty to play and starts a run on it; also links to the high scores and the home page. */
+/** Main menu: asks how many play and which difficulty, and starts a run on them; also links to the high scores and the home page. */
 export class MenuScene extends Phaser.Scene {
   private title!: TitleBanner; // animated "MAZE RUNNER" title
+  private tagline!: Phaser.GameObjects.Text; // one-line goal under the title; it follows the chosen number of players
+  private modeButtons: Button[] = []; // the player-count buttons, in `MODES` order (left to right)
+  private modeRing!: Phaser.GameObjects.Graphics; // white outline round the chosen player-count button
   private runner!: Phaser.GameObjects.Sprite; // decorative runner jogging along the bottom of the screen
   private pad!: MenuPadInput; // controller input for choosing, starting and opening the high scores
   private cards: DifficultyCard[] = []; // one card per difficulty, in `DIFFICULTIES` order (left to right)
   private sparks: Spark[] = []; // drifting sparkles behind the menu
   private selected = DEFAULT_CARD; // 0-based index of the highlighted card; Enter, Space or Start starts that difficulty
+  // Players of the next run. It is not reset in `init`, so coming back from a game keeps the choice made before it.
+  private playerCount: PlayerCount = 1;
   // Time since the menu opened, ms. Counted from frame deltas, since `time.now` can be stale right after a restart.
   private clockMs = 0;
 
@@ -51,12 +68,13 @@ export class MenuScene extends Phaser.Scene {
   /** Clears the per-visit state; Phaser reuses this scene instance each time the menu opens. */
   init(): void {
     this.cards = [];
+    this.modeButtons = [];
     this.sparks = [];
     this.selected = DEFAULT_CARD;
     this.clockMs = 0;
   }
 
-  /** Builds the backdrop, sparks, title, difficulty cards, corner buttons, key hints and jogging runner, then starts listening for input. */
+  /** Builds the backdrop, sparks, title, player-count buttons, difficulty cards, corner buttons, key hints, version and jogging runner, then starts listening for input. */
   create(): void {
     const cx = GAME_WIDTH / 2; // x of the screen's centre line, px
     // Full-screen backdrop, shared with the high-score and result screens.
@@ -75,11 +93,21 @@ export class MenuScene extends Phaser.Scene {
 
     // Two-line title: MAZE in white to cyan, RUNNER in pale yellow to orange.
     this.title = new TitleBanner(this, cx, [
-      { text: 'MAZE', y: 115, size: 100, top: '#ffffff', bottom: '#80deea' },
-      { text: 'RUNNER', y: 228, size: 124, top: '#fff59d', bottom: '#ff7043' },
+      { text: 'MAZE', y: 84, size: 78, top: '#ffffff', bottom: '#80deea' },
+      { text: 'RUNNER', y: 164, size: 100, top: '#fff59d', bottom: '#ff7043' },
     ]);
-    // The goal in one line.
-    this.add.text(cx, 312, `Escape ${LEVEL_COUNT} mazes before the dead ends seal behind you!`, labelStyle(26)).setOrigin(0.5);
+    // The goal in one line; `setMode` fills it in.
+    this.tagline = this.add.text(cx, TAGLINE_Y, '', labelStyle(24)).setOrigin(0.5);
+
+    // Two buttons choose how many play, side by side: one player, or two racing each other. `setMode` rings the chosen one.
+    this.modeRing = this.add.graphics();
+    MODES.forEach(({ count, label, color }, index) => {
+      const x = cx + (index === 0 ? -1 : 1) * (MODE_BUTTON.width / 2 + MODE_BUTTON.gap / 2); // centre x of this button, px
+      this.modeButtons.push(
+        new Button(this, x, MODE_Y, { width: MODE_BUTTON.width, height: MODE_BUTTON.height, label, fontSize: MODE_BUTTON.fontSize, color, onClick: () => this.setMode(count) }),
+      );
+    });
+    this.setMode(this.playerCount);
 
     // One card per difficulty, spread evenly around the centre line: clicking a card starts that difficulty, hovering it highlights it.
     DIFFICULTIES.forEach((difficulty, index) => {
@@ -113,16 +141,23 @@ export class MenuScene extends Phaser.Scene {
       onClick: () => window.location.assign(HOME_URL),
     });
 
+    // Small version label in the bottom-right corner, in line with the Home button's right edge; skipped when the game has no version.
+    if (VERSION_LABEL) {
+      this.add.text(GAME_WIDTH - margin, GAME_HEIGHT - margin, VERSION_LABEL, labelStyle(VERSION_FONT_SIZE)).setOrigin(1, 1).setDepth(10);
+    }
+
     // Controls hint above the running track.
-    this.add.text(cx, 630, `Arrows / WASD / D-pad / touch pad to run  |  Left-Right to choose, Enter or 1-${DIFFICULTIES.length} to start  |  H: high scores  |  Esc or P to pause`, labelStyle(18)).setOrigin(0.5);
+    this.add.text(cx, 630, `Up-Down: players  |  Left-Right: difficulty  |  Enter or 1-${DIFFICULTIES.length}: start  |  H: high scores  |  Esc or P: pause`, labelStyle(18)).setOrigin(0.5);
 
     // A little runner jogs along the track at the bottom of the screen, starting just off the left edge.
     this.runner = this.add.sprite(-60, GAME_HEIGHT - 44, runnerFrameKey('right', IDLE_FRAME)).setScale(1.2);
     // Loops the right-facing walk cycle; `update` moves the sprite along the track.
     this.runner.play(runnerWalkKey('right'));
 
-    // Keyboard: Left/Right (or A/D) move the highlight, Enter or Space starts the highlighted difficulty,
-    // the number keys start a difficulty directly (1 is the first card, Easy), H opens the high scores. `onKeyPress` ignores auto-repeat and unhooks on shutdown.
+    // Keyboard: Up/Down (or W/S) switch between one and two players, Left/Right (or A/D) move the highlight,
+    // Enter or Space starts the highlighted difficulty, the number keys start a difficulty directly (1 is the first card, Easy),
+    // H opens the high scores. `onKeyPress` ignores auto-repeat and unhooks on shutdown.
+    onKeyPress(this, ['UP', 'W', 'DOWN', 'S'], () => this.toggleMode());
     onKeyPress(this, ['LEFT', 'A'], () => this.select(this.selected - 1));
     onKeyPress(this, ['RIGHT', 'D'], () => this.select(this.selected + 1));
     onKeyPress(this, ['ENTER', 'SPACE'], () => this.startSelected());
@@ -158,7 +193,9 @@ export class MenuScene extends Phaser.Scene {
 
     // Polled every frame so a held button reports once, as a press, instead of every frame.
     const events = this.pad.poll();
-    // D-pad or stick left/right moves the highlight; a face button or Start starts it; Back/View opens the high scores.
+    // D-pad or stick up/down switches between one and two players, left/right moves the highlight;
+    // a face button or Start starts it; Back/View opens the high scores.
+    if (events.up || events.down) this.toggleMode();
     if (events.left) this.select(this.selected - 1);
     if (events.right) this.select(this.selected + 1);
     if (events.confirm || events.start) this.startSelected();
@@ -176,21 +213,43 @@ export class MenuScene extends Phaser.Scene {
     this.cards.forEach((card, i) => card.setSelected(i === this.selected));
   }
 
+  /**
+   * Chooses how many play: rings that button, fades the other and rewrites the goal line to match.
+   *
+   * @param count - 1 for a solo game, 2 for two players versus.
+   */
+  private setMode(count: PlayerCount): void {
+    this.playerCount = count;
+    const chosen = MODES.findIndex((mode) => mode.count === count); // index of the chosen button
+    // The chosen button is solid, the other one faded.
+    this.modeButtons.forEach((button, index) => button.setAlpha(index === chosen ? 1 : 0.55));
+    // White outline 7 px outside the chosen button.
+    const button = this.modeButtons[chosen];
+    const { width, height } = MODE_BUTTON;
+    this.modeRing.clear().lineStyle(5, 0xffffff).strokeRoundedRect(button.x - width / 2 - 7, button.y - height / 2 - 7, width + 14, height + 14, 24);
+    this.tagline.setText(count === 1 ? SOLO_TAGLINE : VERSUS_TAGLINE);
+  }
+
+  /** Switches between one and two players. */
+  private toggleMode(): void {
+    this.setMode(this.playerCount === 1 ? 2 : 1);
+  }
+
   /** Starts a run on the difficulty of the highlighted card. */
   private startSelected(): void {
     this.startGame(DIFFICULTIES[this.selected]);
   }
 
   /**
-   * Starts a new run at level 1 on one difficulty. Ignored until `INPUT_DELAY_MS` has passed since the menu opened.
+   * Starts a new run at level 1 on one difficulty, with the chosen number of players. Ignored until `INPUT_DELAY_MS` has passed since the menu opened.
    *
-   * @param difficulty - Difficulty to play; it stays fixed for the whole run.
+   * @param difficulty - Difficulty to play; it stays fixed for the whole run, and so does the number of players.
    */
   private startGame(difficulty: Difficulty): void {
     // A key or button still held from the previous screen must not start a game straight away.
     if (this.clockMs < INPUT_DELAY_MS) return;
     // The play scene gets a brand-new run: level 1 with no points.
-    this.scene.start(SceneKey.Play, { run: startRun(difficulty) });
+    this.scene.start(SceneKey.Play, { run: startRun(difficulty, this.playerCount) });
   }
 
   /** Opens the high-score screen, unless the menu opened less than `INPUT_DELAY_MS` ago. */

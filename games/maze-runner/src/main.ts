@@ -20,7 +20,7 @@ new Phaser.Game({
   backgroundColor: '#0b1d2a', // same as COLOR.night in style.ts
   // Scale to fit any landscape screen while keeping the 16:9 shape.
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  input: { gamepad: true }, // turns on the gamepad plugin so controllers can be read
+  input: { gamepad: true, activePointers: 3 }, // turns on the gamepad plugin so controllers can be read; 3 touch points let two players hold their pads while another finger taps Pause
   // The first scene (BootScene) starts automatically; every other scene is started with `scene.start`.
   scene: [BootScene, MenuScene, HighScoresScene, PlayScene, LevelCompleteScene, ResultScene],
 });

@@ -3,26 +3,18 @@
  */
 import Phaser from 'phaser';
 import { TOUCH_PAD, TextureKey } from '../config';
+import type { PadLayout } from '../systems/layout';
 import { DIRECTIONS, type Direction } from '../systems/maze';
 import { noDirections, type DirectionFlags } from '../systems/stepRepeater';
 
 const DEPTH = 45; // draw order: above the maze and the runner, below the HUD (50)
 const IDLE_ALPHA = 0.85; // opacity of a key that is not being pressed
 
-/**
- * Offset from the pad's centre (in key spacings) and rotation of the up-arrow texture for each key.
- * `dx` and `dy` count keys to the right and downward (one spacing is a button plus the gap); `angle` is in degrees, clockwise.
- */
-const KEY_LAYOUT: Record<Direction, { dx: number; dy: number; angle: number }> = {
-  up: { dx: 0, dy: -1, angle: 0 },
-  right: { dx: 1, dy: 0, angle: 90 },
-  down: { dx: 0, dy: 1, angle: 180 },
-  left: { dx: -1, dy: 0, angle: 270 },
-};
+/** Rotation, in degrees clockwise, that turns the up-arrow texture to point each way. */
+const KEY_ANGLE: Record<Direction, number> = { up: 0, right: 90, down: 180, left: 270 };
 
 /**
- * Four arrow keys arranged as a cross at the right of the screen. It stores which directions are held or tapped;
- * the input system reads them through `sample` every frame.
+ * Four arrow keys. It stores which directions are held or tapped; the input system reads them through `sample` every frame.
  */
 export class TouchPad {
   /** Directions currently pressed on the pad. */
@@ -30,22 +22,24 @@ export class TouchPad {
   /** Directions pressed since the last sample, even if the finger has already lifted. */
   private readonly latched = noDirections();
   private readonly keys: Phaser.GameObjects.Image[] = []; // the four arrow buttons, in `DIRECTIONS` order
+  private readonly keyScale: number; // size of a key relative to its texture, which is `TOUCH_PAD.buttonSize` px across
 
   /**
-   * Builds the four arrow keys around the centre given by `TOUCH_PAD` and wires up their touch events.
+   * Builds the four arrow keys where `layout` puts them and wires up their touch events.
    *
    * @param scene - Scene the keys are added to.
    * @param visible - Whether the pad starts shown (true on touch devices); `setVisible` can reveal it later.
+   * @param layout - Where the keys sit and how large they are.
    */
-  constructor(scene: Phaser.Scene, visible: boolean) {
-    // Distance between neighbouring key centres: one button plus the gap, px.
-    const spacing = TOUCH_PAD.buttonSize + TOUCH_PAD.gap;
+  constructor(scene: Phaser.Scene, visible: boolean, layout: PadLayout) {
+    this.keyScale = layout.keySize / TOUCH_PAD.buttonSize;
     for (const direction of DIRECTIONS) {
-      const { dx, dy, angle } = KEY_LAYOUT[direction];
+      const { x, y } = layout.centers[direction];
       // All four keys share the up-arrow texture; each is rotated to point its own way.
       const key = scene.add
-        .image(TOUCH_PAD.x + dx * spacing, TOUCH_PAD.y + dy * spacing, TextureKey.DpadButton)
-        .setAngle(angle)
+        .image(x, y, TextureKey.DpadButton)
+        .setAngle(KEY_ANGLE[direction])
+        .setScale(this.keyScale)
         .setAlpha(IDLE_ALPHA)
         .setDepth(DEPTH)
         .setInteractive();
@@ -54,12 +48,12 @@ export class TouchPad {
       const press = (): void => {
         this.held[direction] = true;
         this.latched[direction] = true;
-        key.setScale(0.92).setAlpha(1);
+        key.setScale(this.keyScale * 0.92).setAlpha(1);
       };
       /** Clears the held state and restores the key's look. Sliding a finger off a key releases it, so a direction can never stay stuck on. */
       const release = (): void => {
         this.held[direction] = false;
-        key.setScale(1).setAlpha(IDLE_ALPHA);
+        key.setScale(this.keyScale).setAlpha(IDLE_ALPHA);
       };
       // A touch or click on the key presses it.
       key.on(Phaser.Input.Events.POINTER_DOWN, press);
@@ -112,6 +106,6 @@ export class TouchPad {
       this.held[direction] = false;
       this.latched[direction] = false;
     }
-    for (const key of this.keys) key.setScale(1).setAlpha(IDLE_ALPHA);
+    for (const key of this.keys) key.setScale(this.keyScale).setAlpha(IDLE_ALPHA);
   }
 }
