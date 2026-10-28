@@ -44,8 +44,8 @@ export class Hud {
     scene.add.text(848, BAR_CENTER_Y + 3, 'SCORE', caption).setOrigin(1, 0.5).setDepth(above);
     this.scoreText = scene.add.text(860, BAR_CENTER_Y, '0', labelStyle(36)).setOrigin(0, 0.5).setDepth(above);
 
-    // Pause button at the right end of the bar; its "II" label is the usual pause symbol.
-    new Button(scene, GAME_WIDTH - 52, BAR_CENTER_Y, { width: 64, height: 44, label: 'II', fontSize: 26, color: 0x90caf9, onClick: onPause }).setDepth(above);
+    // Pause button at the right end of the bar, 2 px above the centre line so its drop shadow stays clear of the bar's bottom stripe.
+    new Button(scene, GAME_WIDTH - 80, BAR_CENTER_Y - 2, { width: 120, height: 48, label: 'Pause', fontSize: 24, color: 0x90caf9, onClick: onPause }).setDepth(above);
   }
 
   /**
