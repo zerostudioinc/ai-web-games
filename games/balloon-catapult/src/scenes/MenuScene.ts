@@ -1,17 +1,18 @@
 /**
- * Title screen: player-count buttons, drifting clouds, and bombs walking along the bottom.
+ * Title screen: player-count buttons, drifting clouds, bombs walking along the bottom, and the version and copyright labels.
  */
 import Phaser from 'phaser';
 import { Bomb } from '../entities/Bomb';
 import { Button } from '../entities/Button';
 import { TitleBanner } from '../entities/TitleBanner';
-import { CORNER_BUTTON, GAME_HEIGHT, GAME_WIDTH, MAX_PLAYERS, PLAYER_COLORS, SceneKey, TextureKey, VERSION_LABEL } from '../config';
+import { COPYRIGHT_LABEL, CORNER_BUTTON, GAME_HEIGHT, GAME_WIDTH, MAX_PLAYERS, PLAYER_COLORS, SceneKey, TextureKey, VERSION_LABEL } from '../config';
 import { labelStyle } from '../style';
 import { MenuPadInput } from '../systems/MenuPadInput';
 
 const INPUT_DELAY_MS = 700; // so a button held from the previous screen doesn't start a game
 const HOME_URL = '../../index.html'; // from games/<name>/index.html to the site homepage
 const VERSION_FONT_SIZE = 16; // px; small, so the version label stays unobtrusive
+const COPYRIGHT_FONT_SIZE = 14; // px; tiny, so the copyright notice stays unobtrusive
 
 const KEY_NAMES = ['ONE', 'TWO', 'THREE', 'FOUR'] as const; // Phaser names of the number keys that pick a player count
 // Start position, scale and drift speed (px per second) of each background cloud.
@@ -41,7 +42,7 @@ export class MenuScene extends Phaser.Scene {
     this.walkers = [];
   }
 
-  /** Builds the background, clouds, title, corner buttons, player-count buttons and walking bombs. */
+  /** Builds the background, clouds, title, corner buttons, version and copyright labels, player-count buttons and walking bombs. */
   create(): void {
     const cx = GAME_WIDTH / 2;
     this.openedAt = this.time.now;
@@ -82,6 +83,8 @@ export class MenuScene extends Phaser.Scene {
     if (VERSION_LABEL) {
       this.add.text(GAME_WIDTH - margin, GAME_HEIGHT - margin, VERSION_LABEL, labelStyle(VERSION_FONT_SIZE)).setOrigin(1, 1).setDepth(10);
     }
+    // Tiny copyright notice at the bottom centre, level with the version label.
+    this.add.text(cx, GAME_HEIGHT - margin, COPYRIGHT_LABEL, labelStyle(COPYRIGHT_FONT_SIZE)).setOrigin(0.5, 1).setDepth(10);
     // Decorative balloons and a bomb flanking the "How many players?" prompt.
     this.add.image(cx - 330, 345, TextureKey.Balloon).setScale(1.7).setTint(PLAYER_COLORS[0]).setRotation(-0.25);
     this.add.image(cx + 330, 345, TextureKey.Balloon).setScale(1.7).setTint(PLAYER_COLORS[1]).setRotation(0.25);
