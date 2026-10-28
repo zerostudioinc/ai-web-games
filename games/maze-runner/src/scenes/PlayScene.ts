@@ -35,7 +35,7 @@ import { createRng, randomSeed } from '../systems/rng';
 import { completeLevel, startRun, type LevelResult, type RunState } from '../systems/run';
 import { formatScore, levelScore, parTimeMs } from '../systems/score';
 import { THEMES, pickTheme, type ThemeId } from '../systems/themes';
-import { isTrapImminent, isTrapped } from '../systems/trap';
+import { isTrapped, shouldWarn } from '../systems/trap';
 
 /**
  * Stage a level is in; `enter` moves between them. The usual order is intro, playing, escaping, cleared.
@@ -44,7 +44,7 @@ import { isTrapImminent, isTrapped } from '../systems/trap';
  * intro    - the banner shows and the clock has not started
  * playing  - the runner can move and the clock runs
  * trapping - a step sprang the dead-end trap; waiting for the runner to arrive in the doomed cell
- * trapped  - the path has sealed; pausing before the runner is sent back to the start
+ * trapped  - the path has sealed; pausing before the runner is sent back to the start (a mode whose seals do not stay reopens the path then)
  * escaping - the runner is walking out through the exit gap
  * cleared  - level won; celebrating before the score screen
  * gameOver - out of lives; showing the message before the result screen
@@ -68,10 +68,10 @@ const WARNING_TOAST_MS = 2400; // how long the "Careful!" toast stays up, ms
 export class PlayScene extends Phaser.Scene {
   private run: RunState = startRun('normal'); // progress of the whole run (difficulty, level, points banked); replaced by the scene data in `init`
   private previousTheme: ThemeId | undefined; // theme of the level before this one, which this level must not repeat; undefined on level 1
-  private settings: DifficultySettings = DIFFICULTY_SETTINGS.normal; // rules of the chosen difficulty: trap depth and score multiplier
+  private settings: DifficultySettings = DIFFICULTY_SETTINGS.normal; // rules of the chosen difficulty: trap depth, whether it warns, whether sealed paths stay blocked, and the score multiplier
   private theme: ThemeId = 'grassland'; // look of this level (background and walls), picked in `create`
 
-  private maze!: Maze; // this level's maze, including the passages sealed so far
+  private maze!: Maze; // this level's maze, including the passages currently sealed
   private view!: MazeView; // draws the maze, the exit portal and the slabs over sealed passages
   private player!: Player; // the runner on screen
   private hud!: Hud; // status bar: level, lives, clock, score and the pause button
@@ -80,8 +80,8 @@ export class PlayScene extends Phaser.Scene {
   private menuPad!: MenuPadInput; // controller reading for the pause menu and the Start (pause) button
   private pauseOverlay!: PauseOverlay; // the pause menu
   private banner!: Banner; // large message in the middle of the screen: level intro, TRAPPED!, ESCAPED!
-  private toast!: Banner; // small message under the status bar: the dead-end warning
-  private warningFrame!: Phaser.GameObjects.Rectangle; // red outline round the screen, shown while a trap is one step away
+  private toast!: Banner; // small message under the status bar: the dead-end warning, which only Easy shows
+  private warningFrame!: Phaser.GameObjects.Rectangle; // red outline round the screen, shown while a trap is one step away (Easy only)
   private confetti!: Phaser.GameObjects.Particles.ParticleEmitter; // confetti burst at the exit when the level is cleared
 
   private phase: Phase = 'intro'; // current stage of the level; see `Phase`
@@ -94,7 +94,7 @@ export class PlayScene extends Phaser.Scene {
   // Wall to raise once the runner reaches the doomed cell: `direction` is the side of `cell` to close; null when no trap is pending.
   private pendingSeal: { cell: Cell; direction: Direction } | null = null;
   private result: LevelResult | null = null; // how the level went, set when the runner escapes; null before that
-  private inDanger = false; // true while one more step would spring the trap; drives the warning toast and frame
+  private inDanger = false; // true while one more step would spring the trap and the mode warns (Easy); drives the warning toast and frame, and stays false on the other modes
   private warningLevel = 0; // how visible the warning frame is, 0 (hidden) to 1 (full); eased toward its target
   private warningClockMs = 0; // time driving the pulse of the warning frame, ms
 
@@ -134,7 +134,7 @@ export class PlayScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2; // x of the screen's centre line, px
     // One generator, seeded afresh for every level, drives the theme pick, the maze and the maze's decoration.
     const random = createRng(randomSeed());
-    // The theme never repeats the previous level's; the rules (trap depth, score multiplier) come from the difficulty.
+    // The theme never repeats the previous level's; the rules (trap depth, warning, whether seals stay, score multiplier) come from the difficulty.
     this.theme = pickTheme(random, this.previousTheme);
     this.settings = DIFFICULTY_SETTINGS[this.run.difficulty];
 
@@ -173,7 +173,7 @@ export class PlayScene extends Phaser.Scene {
       onQuit: () => this.scene.start(SceneKey.Menu),
     });
 
-    // A big banner mid-screen for the level events, and a small toast under the status bar for the dead-end warning.
+    // A big banner mid-screen for the level events, and a small toast under the status bar for the dead-end warning (Easy only).
     this.banner = new Banner(this, { x: cx, y: 330, titleSize: 96, subtitleSize: 36 });
     this.toast = new Banner(this, { x: cx, y: 112, titleSize: 30, subtitleSize: 20 });
     // Red outline just inside the screen edge, 14 px thick; it starts invisible and `updateWarning` fades it.
@@ -333,17 +333,19 @@ export class PlayScene extends Phaser.Scene {
       this.enter('trapping');
       return;
     }
-    // No trap yet: warn if one more step deeper would spring it.
+    // No trap yet: on a mode that warns, say so if one more step deeper would spring it.
     this.refreshDanger();
   }
 
   /**
-   * Warns the player when one more step into this dead end would spring the trap.
+   * On a mode that warns (Easy), warns the player when one more step into this dead end would spring the trap.
    * A held key is cancelled at that moment, so the step that springs the trap takes a fresh press rather than an auto-repeat.
+   * The other modes give no warning, so for them `shouldWarn` is always false and nothing here happens: even a cancelled
+   * key would give the danger away.
    */
   private refreshDanger(): void {
-    // True when the runner is one step short of the trap depth and an open way leads deeper.
-    const danger = isTrapImminent(this.maze, this.cell, this.settings.trapDepth);
+    // True when the mode warns, the runner is one step short of the trap depth and an open way leads deeper.
+    const danger = shouldWarn(this.maze, this.cell, this.settings);
     // Only on entering the danger: show the toast once and drop the held key's auto-repeat.
     if (danger && !this.inDanger) {
       this.toast.show('Careful! One more step and the path seals behind you!', '', WARNING_TOAST_MS);
@@ -363,7 +365,7 @@ export class PlayScene extends Phaser.Scene {
     const { cell, direction } = this.pendingSeal; // the doomed cell and the side of it to close
     this.pendingSeal = null; // consumed, so the seal happens only once
 
-    // The sealed passage stays closed for the rest of the level, so the same dead end cannot be tried again.
+    // The wall goes up for real; it stays for the rest of the level unless the mode reopens it (see `updateTrapped`).
     this.maze.seal(cell, direction);
     // The view only draws the slab; the call above is what actually blocks the way.
     this.view.sealPassage(cell, direction);
@@ -384,9 +386,17 @@ export class PlayScene extends Phaser.Scene {
     }
   }
 
-  /** Holds the TRAPPED banner for `TRAP_MS`, then sends the runner back to the start to carry on. */
+  /**
+   * Holds the TRAPPED banner for `TRAP_MS`, then sends the runner back to the start to carry on.
+   * Where seals do not stay blocked (Very Hard), the collapsed path opens again at that moment.
+   */
   private updateTrapped(): void {
     if (this.phaseMs < TRAP_MS) return;
+    // The dead end can be entered again, so the player has to remember which way not to go.
+    if (!this.settings.sealsStayBlocked) {
+      this.maze.reopenSealed();
+      this.view.removeSlabs();
+    }
     // Back to the start; the clock kept running through the trap, which is part of the penalty.
     this.cell = this.maze.start;
     this.player.respawn(this.maze.start, RESPAWN_BLINK_MS); // blinks for RESPAWN_BLINK_MS so the restart point is easy to see
@@ -430,7 +440,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   /**
-   * Fades a red frame in and out around the screen while a trap is one step away.
+   * Fades a red frame in and out around the screen while a trap is one step away. Only Easy ever raises `inDanger`.
    *
    * @param dt - Frame time in ms, already capped by `MAX_FRAME_MS`.
    */

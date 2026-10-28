@@ -226,7 +226,7 @@ function chooseExit(cols: number, rows: number, distance: Int16Array, random: Ra
 
 /**
  * A finished maze: which sides of every cell are open, the one route from the start to the exit, and how far each
- * cell lies from that route. Walls can still be added while playing with `seal`.
+ * cell lies from that route. Walls can still be added while playing with `seal`, and taken away again with `reopenSealed`.
  */
 export class Maze {
   /** The one route from the start to the exit cell, both ends included. */
@@ -237,6 +237,7 @@ export class Maze {
    * Row-major, and measured once at construction, so `seal` does not change it.
    */
   private readonly depths: Int16Array;
+  private readonly sealed: Passage[] = []; // passages `seal` has closed and `reopenSealed` has not yet opened, each as it was sealed
 
   /**
    * Builds a maze from its passages, then works out the solution route and every cell's dead-end depth.
@@ -296,15 +297,29 @@ export class Maze {
 
   /**
    * Walls off one side of `cell` and the matching side of its neighbour, as when a dead end collapses.
+   * A side that is already walled is ignored, so only real passages are remembered for `reopenSealed`.
    *
    * @param cell - The cell whose side is closed.
    * @param direction - Which side of `cell` to wall off.
    */
   seal(cell: Cell, direction: Direction): void {
+    if (!this.canMove(cell, direction)) return;
     this.open[this.index(cell)] &= ~OPEN_BIT[direction];
     const next = stepCell(cell, direction);
     // Close the neighbour's matching side too; there is no neighbour when the gap led out of the grid.
     if (this.contains(next)) this.open[this.index(next)] &= ~OPEN_BIT[OPPOSITE[direction]];
+    this.sealed.push({ cell, direction });
+  }
+
+  /** Opens every passage that `seal` has closed, as if no dead end had collapsed; walls that were never passages stay closed. */
+  reopenSealed(): void {
+    for (const { cell, direction } of this.sealed) {
+      this.open[this.index(cell)] |= OPEN_BIT[direction];
+      const next = stepCell(cell, direction);
+      // Mirror of `seal`: the neighbour's matching side opens too, when there is a neighbour.
+      if (this.contains(next)) this.open[this.index(next)] |= OPEN_BIT[OPPOSITE[direction]];
+    }
+    this.sealed.length = 0;
   }
 
   /**

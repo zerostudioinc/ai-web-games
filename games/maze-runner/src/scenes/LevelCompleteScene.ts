@@ -127,7 +127,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       ['Par time', formatTime(parMs)],
       [`Level ${level} value`, formatScore(score.base)],
       ['Speed bonus', `x${score.timeFactor.toFixed(2)}`],
-      [`${DIFFICULTY_SETTINGS[this.run.difficulty].label} mode`, `x${score.difficultyMultiplier.toFixed(1)}`],
+      [`${DIFFICULTY_SETTINGS[this.run.difficulty].label} mode`, `x${score.difficultyMultiplier.toFixed(2)}`],
     ];
     // Labels are left-aligned and values right-aligned, each row centred on its own y.
     rows.forEach(([label, value], index) => {

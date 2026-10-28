@@ -1,5 +1,5 @@
 /**
- * Tests for the maze model: generation, the solution route, dead-end depth, sealing a passage and merging walls into runs.
+ * Tests for the maze model: generation, the solution route, dead-end depth, sealing and reopening a passage and merging walls into runs.
  */
 import { describe, expect, it } from 'vitest';
 import { LEVEL_COUNT, mazeSizeForLevel } from './levels';
@@ -229,6 +229,64 @@ describe('Maze.seal', () => {
     const before = wallLength(maze);
     maze.seal({ col: 3, row: 0 }, 'right'); // wall off the gap between d and e
     expect(wallLength(maze)).toBe(before + 1); // that closes exactly one more cell edge
+  });
+});
+
+// Reopening undoes every collapse so far, from both sides of each passage, and never opens a wall that was not a passage.
+describe('Maze.reopenSealed', () => {
+  it('opens a sealed passage again from both sides', () => {
+    const maze = branchMaze();
+    const before = wallLength(maze);
+    maze.seal({ col: 1, row: 0 }, 'right'); // wall off the gap between b and c
+    maze.reopenSealed();
+    expect(maze.canMove({ col: 1, row: 0 }, 'right')).toBe(true); // open on b's side
+    expect(maze.canMove({ col: 2, row: 0 }, 'left')).toBe(true); // and on c's side
+    expect(wallLength(maze)).toBe(before); // the maze is as it was
+  });
+
+  it('opens every passage sealed so far', () => {
+    const maze = branchMaze();
+    const before = wallLength(maze);
+    maze.seal({ col: 1, row: 0 }, 'right'); // between b and c
+    maze.seal({ col: 3, row: 0 }, 'right'); // between d and e
+    expect(wallLength(maze)).toBe(before + 2);
+    maze.reopenSealed();
+    expect(wallLength(maze)).toBe(before);
+  });
+
+  it('reopens the exit gap, which has no cell on its far side', () => {
+    const maze = branchMaze();
+    maze.seal({ col: 4, row: 1 }, 'right'); // wall off the exit gap in E
+    expect(maze.canMove({ col: 4, row: 1 }, 'right')).toBe(false);
+    maze.reopenSealed();
+    expect(maze.canMove({ col: 4, row: 1 }, 'right')).toBe(true);
+  });
+
+  it('leaves a wall that was never a passage closed', () => {
+    const maze = branchMaze();
+    const before = wallLength(maze);
+    maze.seal({ col: 0, row: 0 }, 'down'); // there is no gap between a and f, so this seals nothing
+    maze.reopenSealed();
+    expect(maze.canMove({ col: 0, row: 0 }, 'down')).toBe(false);
+    expect(wallLength(maze)).toBe(before);
+  });
+
+  it('forgets what it reopened, so a passage can be sealed and reopened again', () => {
+    const maze = branchMaze();
+    const before = wallLength(maze);
+    maze.seal({ col: 1, row: 0 }, 'right');
+    maze.reopenSealed();
+    maze.seal({ col: 3, row: 0 }, 'right'); // a different passage the second time
+    maze.reopenSealed();
+    maze.reopenSealed(); // nothing left to reopen: harmless
+    expect(wallLength(maze)).toBe(before);
+  });
+
+  it('keeps the dead-end depths, which are measured once', () => {
+    const maze = branchMaze();
+    maze.seal({ col: 1, row: 0 }, 'right');
+    maze.reopenSealed();
+    expect([0, 1, 2, 3, 4].map((col) => maze.depthAt({ col, row: 0 }))).toEqual([3, 2, 3, 4, 5]); // the top row a to e, as before
   });
 });
 

@@ -1,6 +1,7 @@
 /**
  * The dead-end rule: walk far enough into a branch that leads nowhere and the way back collapses.
  */
+import type { DifficultySettings } from './difficulty';
 import { DIRECTIONS, stepCell, type Cell, type Maze } from './maze';
 
 /**
@@ -31,4 +32,17 @@ export function isTrapImminent(maze: Maze, cell: Cell, limit: number): boolean {
     const next = stepCell(cell, direction);
     return maze.canMove(cell, direction) && maze.contains(next) && maze.depthAt(next) > depth;
   });
+}
+
+/**
+ * True when the player should be warned that one more step would spring the trap: only on a difficulty that warns
+ * (Easy), and only when the trap really is one step away. The other modes never warn, however close the trap is.
+ *
+ * @param maze - The maze being played, including any passages already sealed.
+ * @param cell - The runner's current cell, inside the grid.
+ * @param settings - Rules of the chosen difficulty: its trap depth and whether it warns at all.
+ * @returns Whether the warning (a message and a red screen frame) should show for this cell.
+ */
+export function shouldWarn(maze: Maze, cell: Cell, settings: DifficultySettings): boolean {
+  return settings.warnsBeforeSeal && isTrapImminent(maze, cell, settings.trapDepth);
 }

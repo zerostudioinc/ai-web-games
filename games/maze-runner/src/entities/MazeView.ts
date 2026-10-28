@@ -26,6 +26,13 @@ interface WallRect {
   horizontal: boolean; // true for a run along a row line (wider than tall), false for one along a column line (taller than wide)
 }
 
+/** A stone slab over a sealed passage, with the clock of its pop-in or shrink-out animation. */
+interface Slab {
+  container: Phaser.GameObjects.Container; // the slab's red glow and stone
+  ageMs: number; // animation clock, ms: rises to `SEAL_POP_MS` as the slab pops in and falls back to 0 as it shrinks away
+  leaving: boolean; // true once the passage has reopened and the slab is shrinking away
+}
+
 /**
  * Paints one wall run in a theme's style.
  *
@@ -304,7 +311,7 @@ export class MazeView {
   private readonly layer: Phaser.GameObjects.Image; // the baked floor and walls
   private readonly marker: Phaser.GameObjects.Image; // the exit portal, just outside the gap
   private readonly markerScale: number; // the portal's resting scale, which makes it 1.3 cells wide
-  private readonly slabs: { container: Phaser.GameObjects.Container; ageMs: number }[] = []; // slabs dropped so far; `ageMs` is time since each was dropped, ms
+  private readonly slabs: Slab[] = []; // slabs on screen, oldest first
   private pulseMs = 0; // total time passed, ms; drives the portal's pulse
 
   /**
@@ -366,7 +373,7 @@ export class MazeView {
 
   /**
    * Drops a stone slab into the gap on `direction` of `cell`, where the maze has just been sealed.
-   * The slab pops in from nothing and then stays for the rest of the level.
+   * The slab pops in from nothing and then stays until `removeSlabs` or `destroy`.
    *
    * @param cell - The cell whose side was sealed.
    * @param direction - Which side of `cell` is now walled off.
@@ -392,11 +399,16 @@ export class MazeView {
       .container(center.x + (toward.col * cellSize) / 2, center.y + (toward.row * cellSize) / 2, [glow, stone])
       .setDepth(6)
       .setScale(0);
-    this.slabs.push({ container, ageMs: 0 });
+    this.slabs.push({ container, ageMs: 0, leaving: false });
+  }
+
+  /** Shrinks every slab away, as when the sealed passages reopen; each is removed once it has gone. */
+  removeSlabs(): void {
+    for (const slab of this.slabs) slab.leaving = true;
   }
 
   /**
-   * Animates the portal's pulse and any slabs that are still popping in. Call once per frame.
+   * Animates the portal's pulse and any slabs that are popping in or shrinking away. Call once per frame.
    *
    * @param deltaMs - Time since the previous frame, in ms.
    */
@@ -407,12 +419,23 @@ export class MazeView {
     // The portal swells by up to 10% and its opacity moves between 76% and 100% as the beat swings.
     this.marker.setScale(this.markerScale * (1 + 0.1 * beat)).setAlpha(0.88 + 0.12 * beat);
 
-    // Slabs pop in with a little overshoot, then stay put.
-    for (const slab of this.slabs) {
-      // A finished slab already rests at full size.
-      if (slab.ageMs >= SEAL_POP_MS) continue;
-      slab.ageMs += deltaMs;
-      slab.container.setScale(easeOutBack(slab.ageMs / SEAL_POP_MS));
+    // Walk backwards so a slab that has finished shrinking can be dropped from the list on the way.
+    for (let i = this.slabs.length - 1; i >= 0; i--) {
+      const slab = this.slabs[i];
+      if (slab.leaving) {
+        // The passage has reopened: the slab shrinks to nothing, then goes.
+        slab.ageMs -= deltaMs;
+        if (slab.ageMs > 0) {
+          slab.container.setScale(slab.ageMs / SEAL_POP_MS);
+        } else {
+          slab.container.destroy();
+          this.slabs.splice(i, 1);
+        }
+      } else if (slab.ageMs < SEAL_POP_MS) {
+        // A new slab pops in with a little overshoot, then rests at full size.
+        slab.ageMs = Math.min(SEAL_POP_MS, slab.ageMs + deltaMs);
+        slab.container.setScale(easeOutBack(slab.ageMs / SEAL_POP_MS));
+      }
     }
   }
 

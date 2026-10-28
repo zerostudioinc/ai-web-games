@@ -51,11 +51,25 @@ describe('levelScore', () => {
     expect(quick).toBeGreaterThan(slow);
   });
 
+  it('applies the Easy multiplier', () => {
+    const normal = levelScore(4, 60_000, 60_000, 'normal'); // level 4 at par: base 1750 x 1 = 1750 points
+    const easy = levelScore(4, 60_000, 60_000, 'easy'); // the same run on Easy
+    expect(easy.difficultyMultiplier).toBe(0.75);
+    expect(easy.points).toBe(Math.round(normal.points * 0.75)); // 1750 x 0.75 = 1312.5, which rounds to 1313
+  });
+
   it('applies the Hard multiplier', () => {
     const normal = levelScore(4, 60_000, 60_000, 'normal'); // level 4 at par: base 1750 x 1 = 1750 points
     const hard = levelScore(4, 60_000, 60_000, 'hard'); // the same run on Hard
     expect(hard.difficultyMultiplier).toBe(1.5);
     expect(hard.points).toBe(Math.round(normal.points * 1.5)); // 1750 x 1.5 = 2625
+  });
+
+  it('applies the Very Hard multiplier', () => {
+    const normal = levelScore(4, 60_000, 60_000, 'normal'); // level 4 at par: base 1750 x 1 = 1750 points
+    const veryHard = levelScore(4, 60_000, 60_000, 'veryHard'); // the same run on Very Hard
+    expect(veryHard.difficultyMultiplier).toBe(2);
+    expect(veryHard.points).toBe(normal.points * 2); // 1750 x 2 = 3500
   });
 
   it('rounds to whole points and reports the breakdown', () => {
