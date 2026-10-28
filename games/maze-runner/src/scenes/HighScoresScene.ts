@@ -14,8 +14,8 @@ import { MenuPadInput } from '../systems/MenuPadInput';
 import { formatScore } from '../systems/score';
 
 const INPUT_DELAY_MS = 400; // ms after the screen opens during which input is ignored, so a key or button held from the previous screen does nothing
-const PANEL_WIDTH = 420; // width of one score panel, px
-const PANEL_SPACING = 480; // distance between the centres of neighbouring panels, px
+const PANEL_WIDTH = 280; // width of one score panel, px
+const PANEL_SPACING = 300; // distance between the centres of neighbouring panels, px
 const PANEL_TOP = 190; // y of the panels' top edge, px
 const HEADING_HEIGHT = 70; // height of the coloured strip holding the difficulty name, px
 const ROW_HEIGHT = 66; // height of one score row, px
@@ -49,7 +49,7 @@ export class HighScoresScene extends Phaser.Scene {
     // One-line title with a pale-yellow to orange gradient.
     this.title = new TitleBanner(this, cx, [{ text: 'HIGH SCORES', y: 105, size: 96, top: '#fff59d', bottom: '#ff7043' }]);
 
-    // One panel per difficulty, spread evenly around the centre line (Normal on the left, Hard on the right).
+    // One panel per difficulty, spread evenly around the centre line (Easy on the left, Very Hard on the right).
     DIFFICULTIES.forEach((difficulty, index) => {
       this.drawPanel(cx + (index - (DIFFICULTIES.length - 1) / 2) * PANEL_SPACING, difficulty);
     });

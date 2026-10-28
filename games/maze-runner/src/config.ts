@@ -35,7 +35,7 @@ export const INTRO_MS = 1600; // level banner shown before the clock starts
 export const TRAP_MS = 1600; // "TRAPPED!" banner and the runner's stun before being sent back to the start
 export const CLEAR_MS = 1500; // "ESCAPED!" banner and cheer before the level-complete screen
 export const GAME_OVER_MS = 2000; // final "TRAPPED!" banner (no lives left) before the result screen
-export const SEAL_POP_MS = 240; // pop-in animation of the slab that seals a collapsed passage
+export const SEAL_POP_MS = 240; // pop-in of the slab that seals a collapsed passage, and its shrink-out when the passage reopens
 export const RESPAWN_BLINK_MS = 900; // the runner blinks this long after returning to the start
 
 /** Scene keys, so scenes can start each other without repeating string literals. */
@@ -71,5 +71,5 @@ export const themeTextureKey = (theme: ThemeId): string => `theme-${theme}`;
 /** Size (px) of the corner buttons, their font size (px), and their distance from the screen edge (`margin`, px). */
 export const CORNER_BUTTON = { width: 150, height: 42, fontSize: 22, margin: 20 } as const;
 
-/** Accent colour (0xRRGGBB) of each difficulty's menu card heading and high-score panel heading. */
-export const DIFFICULTY_COLORS: Record<Difficulty, number> = { normal: 0xffd54f, hard: 0xef5350 };
+/** Accent colour (0xRRGGBB) of each difficulty's menu card heading and high-score panel heading: green, gold, red and purple. */
+export const DIFFICULTY_COLORS: Record<Difficulty, number> = { easy: 0x81c784, normal: 0xffd54f, hard: 0xef5350, veryHard: 0xba68c8 };

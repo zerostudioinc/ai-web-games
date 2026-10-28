@@ -79,10 +79,14 @@ describe('recordScore', () => {
 
   it('keeps a separate table for each difficulty', () => {
     const storage = memoryStorage();
+    recordScore('easy', 500, storage);
     recordScore('normal', 800, storage);
     recordScore('hard', 300, storage);
+    recordScore('veryHard', 200, storage);
+    expect(bestScore('easy', storage)).toBe(500);
     expect(bestScore('normal', storage)).toBe(800);
     expect(bestScore('hard', storage)).toBe(300);
+    expect(bestScore('veryHard', storage)).toBe(200);
   });
 
   it('still reports the result when saving fails', () => {

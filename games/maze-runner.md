@@ -24,10 +24,22 @@ Requirements:
   - Figure out a way to calculate the score to give the player a score after each level, and the final score will be the sum of all score from each level.
   - There will be a high-score chart store for the top 5 scores for each difficulty mode.
 - Dificulty Mode: Player have a difficulty selection with the choice of:
+  - Easy
+    - A player can continue to move forward 6 steps into a dead-end path before they are trap and loses a live.
+    - Player get warning when the path is about to seal when they move one more step.
+    - The sealed corridor will stay blocked on the maze so player will not repeat the same path.
   - Normal
-    - A player can continue to move forward 5 steps into a dead-end path before they are trap and loses a live.
+    - A player can continue to move forward 4 steps into a dead-end path before they are trap and loses a live.
+    - There are no player warning when the path is about to seal.
+    - The sealed corridor will stay blocked on the maze so player will not repeat the same path.
   - Hard
     - A player can continue to move forward 2 steps into a dead-end path before they are trap and loses a live.
+    - There are no player warning when the path is about to seal.
+    - The sealed corridor will stay blocked on the maze so player will not repeat the same path.
+  - Very Hard
+    - A player can continue to move forward 2 steps into a dead-end path before they are trap and loses a live.
+    - There are no player warning when the path is about to seal.
+    - The sealed corridor will not stay blocked to make it more difficult so player need to remember their route.
 - Score, high score in localStorage, pause screen.
   - Keep a top 5 high score for each difficulty mode.
   - Show the top high score for each difficulty mode in the main menu.

@@ -17,8 +17,12 @@ import { startRun } from '../systems/run';
 
 const INPUT_DELAY_MS = 600; // ms after the menu opens during which a game start or High Scores is ignored, so a key or button held from the previous screen cannot trigger them
 const HOME_URL = '../../index.html'; // from games/<name>/index.html to the site homepage; the Home button goes there
-const CARD_SPACING = 400; // distance between the centres of neighbouring difficulty cards, px
-const CARD_Y = 480; // centre y of the difficulty cards, px
+const CARD_SPACING = 304; // distance between the centres of neighbouring difficulty cards, px
+const CARD_Y = 475; // centre y of the difficulty cards, px; keeps a selected card's ring clear of the tagline above and the key hint below
+// Phaser names of the number keys 1 to 9; the nth difficulty card (left to right) starts on number key n.
+const NUMBER_KEYS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'] as const;
+// Index of the card highlighted when the menu opens: Normal.
+const DEFAULT_CARD = DIFFICULTIES.indexOf('normal');
 const RUNNER_SPEED = 110; // speed of the decorative runner along the bottom of the screen, px per second
 
 /** One drifting sparkle of the menu backdrop. */
@@ -35,7 +39,7 @@ export class MenuScene extends Phaser.Scene {
   private pad!: MenuPadInput; // controller input for choosing, starting and opening the high scores
   private cards: DifficultyCard[] = []; // one card per difficulty, in `DIFFICULTIES` order (left to right)
   private sparks: Spark[] = []; // drifting sparkles behind the menu
-  private selected = 0; // 0-based index of the highlighted card; Enter, Space or Start starts that difficulty
+  private selected = DEFAULT_CARD; // 0-based index of the highlighted card; Enter, Space or Start starts that difficulty
   // Time since the menu opened, ms. Counted from frame deltas, since `time.now` can be stale right after a restart.
   private clockMs = 0;
 
@@ -48,7 +52,7 @@ export class MenuScene extends Phaser.Scene {
   init(): void {
     this.cards = [];
     this.sparks = [];
-    this.selected = 0;
+    this.selected = DEFAULT_CARD;
     this.clockMs = 0;
   }
 
@@ -75,7 +79,7 @@ export class MenuScene extends Phaser.Scene {
       { text: 'RUNNER', y: 228, size: 124, top: '#fff59d', bottom: '#ff7043' },
     ]);
     // The goal in one line.
-    this.add.text(cx, 318, `Escape ${LEVEL_COUNT} mazes before the dead ends seal behind you!`, labelStyle(26)).setOrigin(0.5);
+    this.add.text(cx, 312, `Escape ${LEVEL_COUNT} mazes before the dead ends seal behind you!`, labelStyle(26)).setOrigin(0.5);
 
     // One card per difficulty, spread evenly around the centre line: clicking a card starts that difficulty, hovering it highlights it.
     DIFFICULTIES.forEach((difficulty, index) => {
@@ -84,8 +88,8 @@ export class MenuScene extends Phaser.Scene {
       const card = new DifficultyCard(this, x, CARD_Y, difficulty, bestScore(difficulty), () => this.startGame(difficulty), () => this.select(index));
       this.cards.push(card);
     });
-    // Normal, the first card, is highlighted to begin with.
-    this.select(0);
+    // Normal is highlighted to begin with.
+    this.select(DEFAULT_CARD);
 
     // High Scores and Home share one size and sit in the top corners.
     const { width, height, fontSize, margin } = CORNER_BUTTON;
@@ -110,7 +114,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Controls hint above the running track.
-    this.add.text(cx, 622, 'Arrows / WASD / D-pad / touch pad to run  |  Left-Right to choose, Enter to start  |  H: high scores  |  Esc or P to pause', labelStyle(18)).setOrigin(0.5);
+    this.add.text(cx, 630, `Arrows / WASD / D-pad / touch pad to run  |  Left-Right to choose, Enter or 1-${DIFFICULTIES.length} to start  |  H: high scores  |  Esc or P to pause`, labelStyle(18)).setOrigin(0.5);
 
     // A little runner jogs along the track at the bottom of the screen, starting just off the left edge.
     this.runner = this.add.sprite(-60, GAME_HEIGHT - 44, runnerFrameKey('right', IDLE_FRAME)).setScale(1.2);
@@ -118,12 +122,11 @@ export class MenuScene extends Phaser.Scene {
     this.runner.play(runnerWalkKey('right'));
 
     // Keyboard: Left/Right (or A/D) move the highlight, Enter or Space starts the highlighted difficulty,
-    // 1 and 2 start Normal and Hard directly, H opens the high scores. `onKeyPress` ignores auto-repeat and unhooks on shutdown.
+    // the number keys start a difficulty directly (1 is the first card, Easy), H opens the high scores. `onKeyPress` ignores auto-repeat and unhooks on shutdown.
     onKeyPress(this, ['LEFT', 'A'], () => this.select(this.selected - 1));
     onKeyPress(this, ['RIGHT', 'D'], () => this.select(this.selected + 1));
     onKeyPress(this, ['ENTER', 'SPACE'], () => this.startSelected());
-    onKeyPress(this, ['ONE'], () => this.startGame('normal'));
-    onKeyPress(this, ['TWO'], () => this.startGame('hard'));
+    DIFFICULTIES.forEach((difficulty, index) => onKeyPress(this, [NUMBER_KEYS[index]], () => this.startGame(difficulty)));
     onKeyPress(this, ['H'], () => this.openHighScores());
 
     // Created last, so a controller button already held when the menu opens is not read as a press.
